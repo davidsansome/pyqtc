@@ -64,7 +64,7 @@ class Scope(object):
     if parent is None:
       self.pb = codemodel_pb2.Scope()
     else:
-      self.pb = parent.pb.child_scopes.add()
+      self.pb = parent.pb.child_scope.add()
 
     # Set the Scope position
     ctx.SetPos(node, self.pb.declaration_pos)
@@ -84,7 +84,7 @@ class Scope(object):
       self.pb.name = node.name
 
   def AddVariable(self, ctx, node, name, type):
-    ret = self.pb.child_variables.add()
+    ret = self.pb.child_variable.add()
     ctx.SetPos(node, ret.declaration_pos)
     ret.name = name
     ret.type = type
@@ -135,12 +135,12 @@ class Scope(object):
     if isinstance(node, ast.Import):
       for name in [x.name for x in node.names]:
         var = self.AddVariable(ctx, node, name, codemodel_pb2.Variable.MODULE_REF)
-        var.possible_type_ids.append(name)
+        var.possible_type_id.append(name)
 
     elif isinstance(node, ast.ImportFrom):
       for name in [x.name for x in node.names]:
         var = self.AddVariable(ctx, node, name, codemodel_pb2.Variable.MODULE_REF)
-        var.possible_type_ids.append("%s.%s" % (node.module, name))
+        var.possible_type_id.append("%s.%s" % (node.module, name))
 
     elif isinstance(node, ast.FunctionDef):
       func = self.AddScope(ctx, node)
@@ -152,7 +152,7 @@ class Scope(object):
         if index == 0 and self.pb.type == codemodel_pb2.Scope.CLASS:
           # TODO: handle staticmethod and classmethod decorators
           # TODO: fully qualified type ID
-          arg.possible_type_ids.append(self.pb.name)
+          arg.possible_type_id.append(self.pb.name)
 
     elif isinstance(node, ast.ClassDef):
       self.AddScope(ctx, node)
