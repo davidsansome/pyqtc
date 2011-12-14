@@ -1,0 +1,5 @@
+.moc
+.obj
+Makefile
+*.pro.user
+plugin/pyqtc.pluginspec
