@@ -3,3 +3,5 @@
 Makefile
 *.pro.user
 plugin/pyqtc.pluginspec
+*.pyc
+*~
