@@ -1,8 +1,6 @@
 #ifndef PYQTC_PLUGIN_H
 #define PYQTC_PLUGIN_H
 
-#include "pyqtc_global.h"
-
 #include <extensionsystem/iplugin.h>
 
 namespace pyqtc {

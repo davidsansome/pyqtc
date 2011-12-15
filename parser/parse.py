@@ -1,5 +1,8 @@
+"""
+Converts an AST to a CodeModel protobuf.
+"""
+
 import ast
-import operator
 import sys
 import weakref
 
@@ -26,6 +29,10 @@ class ParseContext(object):
     self.line_offset = line_offset
 
   def SetPos(self, node, pos_out):
+    """
+    Fills the Position protobuf pos_out with the code location of the AST node.
+    """
+
     pos_out.filename = self.filename
     pos_out.line     = getattr(node, "lineno", 0) + self.line_offset
     pos_out.column   = getattr(node, "col_offset", 0)
@@ -83,16 +90,26 @@ class Scope(object):
     if hasattr(node, "name"):
       self.pb.name = node.name
 
-  def AddVariable(self, ctx, node, name, type):
+  def AddVariable(self, ctx, node, name, var_type):
+    """
+    Adds a new variable to this scope.  var_type is one of the protobuf Variable
+    types.  Returns the Variable protobuf.
+    """
+
     ret = self.pb.child_variable.add()
     ctx.SetPos(node, ret.declaration_pos)
     ret.name = name
-    ret.type = type
+    ret.type = var_type
 
     self.members[name] = ret
     return ret
 
   def AddScope(self, ctx, node):
+    """
+    Adds a new scope (either a function or a class) to this scope.  Returns the
+    Scope instance.
+    """
+
     ret = Scope(ctx, node, self)
 
     self.members[ret.pb.name] = ret
@@ -169,7 +186,7 @@ class Scope(object):
       self.HandleChildNodes(ctx, node.body)
       self.HandleChildNodes(ctx, node.orelse)
 
-      for handler in getattr(node, "handlers", []):
+      for _handler in getattr(node, "handlers", []):
         self.HandleChildNodes(ctx, node.body)
 
     elif isinstance(node, ast.Assign):
@@ -190,7 +207,7 @@ class Scope(object):
       pass
 
     else:
-      print "Unhandled %s: %s" % (node.__class__.__name__, node._attributes)
+      print "Unhandled %s" % node.__class__.__name__
 
   def ResolveIdentifier(self, name):
     """
@@ -209,7 +226,12 @@ class Scope(object):
     return None
 
 
-if __name__ == "__main__":
+def Main():
+  """
+  Parses the python source file given on the commandline and prints the
+  protobuf.
+  """
+
   filename = sys.argv[1]
   source = open(filename).read()
 
@@ -220,3 +242,7 @@ if __name__ == "__main__":
   scope.Populate(ctx)
 
   print scope.pb
+
+
+if __name__ == "__main__":
+  Main()
