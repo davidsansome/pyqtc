@@ -8,7 +8,7 @@ WorkerReply::WorkerReply(int id)
 {
 }
 
-void WorkerReply::SetReply(const Message& message) {
+void WorkerReply::SetReply(const pb::Message& message) {
   Q_ASSERT(!finished_);
 
   message_.MergeFrom(message);

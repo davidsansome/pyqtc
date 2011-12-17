@@ -19,21 +19,25 @@ QList<FilterEntry> PythonFilter::matchesFor(QFutureInterface<FilterEntry>& futur
 
   for (CodeModel::FilesMap::const_iterator it = model_->files().begin() ;
        it != model_->files().end() ; ++it) {
-    WalkScope(it.value().scope_, entry, &ret);
+    WalkScope(it.value(), entry, &ret);
   }
 
   return ret;
 }
 
-void PythonFilter::WalkScope(const Scope& scope, const QString& query,
+void PythonFilter::WalkScope(Scope* scope, const QString& query,
                              QList<Locator::FilterEntry>* entries) {
-  if (scope.name().contains(query, Qt::CaseInsensitive)) {
-    FilterEntry entry(this, scope.name(), QVariant());
+  if (scope->type() != pb::Scope_Type_MODULE &&
+      scope->name().contains(query, Qt::CaseInsensitive)) {
+    FilterEntry entry(this, scope->name(), QVariant());
+    entry.extraInfo = scope->ParentDottedName();
+    entry.displayIcon = scope->icon();
+
     entries->append(entry);
   }
 
-  for (int i=0 ; i<scope.child_scope_size() ; ++i) {
-    WalkScope(scope.child_scope(i), query, entries);
+  foreach (Scope* child_scope, scope->children()) {
+    WalkScope(child_scope, query, entries);
   }
 }
 

@@ -8,6 +8,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${QTC_BUILD}/src
   ${QTC_SOURCE}/src/libs
+  ${QTC_SOURCE}/src/libs/3rdparty/cplusplus
   ${QTC_SOURCE}/src/plugins
   ${QTC_SOURCE}/tools
 )
@@ -74,6 +75,7 @@ add_library(pyqtc SHARED
 target_link_libraries(pyqtc
   Aggregation
   Botan
+  CPlusPlus
   Core
   ExtensionSystem
   Locator

@@ -5,8 +5,11 @@
 
 namespace pyqtc {
 
+namespace pb {
+  class Scope;
+}
+
 class CodeModel;
-class Scope;
 
 class PythonFilter : public Locator::ILocatorFilter {
 public:
@@ -24,7 +27,7 @@ public:
   void refresh(QFutureInterface<void>& future);
 
 private:
-  void WalkScope(const Scope& scope, const QString& query,
+  void WalkScope(Scope* scope, const QString& query,
                  QList<Locator::FilterEntry>* entries);
 
 private:

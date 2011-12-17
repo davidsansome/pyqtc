@@ -1,5 +1,7 @@
 #include "closure.h"
 
+#include <QtDebug>
+
 using namespace pyqtc;
 
 
@@ -34,7 +36,12 @@ Closure::Closure(QObject* sender,
 
   QByteArray normalised_slot = QMetaObject::normalizedSignature(slot + 1);
   const int index = meta_receiver->indexOfSlot(normalised_slot.constData());
-  Q_ASSERT(index != -1);
+
+  if (index == -1) {
+    qWarning() << "Closure receiver not found" << receiver << normalised_slot;
+    return;
+  }
+
   slot_ = meta_receiver->method(index);
 
   Connect(sender, signal);

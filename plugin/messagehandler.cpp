@@ -56,7 +56,7 @@ void MessageHandler::DeviceReadyRead() {
     // Did we get everything?
     if (buffer_.size() == expected_length_) {
       // Parse the message
-      Message message;
+      pb::Message message;
       if (!message.ParseFromArray(buffer_.data().constData(), buffer_.size())) {
         qDebug() << "Malformed protobuf message";
         device_->close();
@@ -74,12 +74,12 @@ void MessageHandler::DeviceReadyRead() {
   }
 }
 
-void MessageHandler::SendMessage(const Message& message) {
+void MessageHandler::SendMessage(const pb::Message& message) {
   std::string data = message.SerializeAsString();
   WriteMessage(QByteArray(data.data(), data.size()));
 }
 
-void MessageHandler::SendMessageAsync(const Message& message) {
+void MessageHandler::SendMessageAsync(const pb::Message& message) {
   std::string data = message.SerializeAsString();
   metaObject()->invokeMethod(this, "WriteMessage", Qt::QueuedConnection,
                              Q_ARG(QByteArray, QByteArray(data.data(), data.size())));

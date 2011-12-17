@@ -11,7 +11,10 @@ class QLocalServer;
 
 namespace pyqtc {
 
-class Message;
+namespace pb {
+  class Message;
+}
+
 class MessageHandler;
 class WorkerReply;
 
@@ -26,12 +29,12 @@ public:
 
 private slots:
   void ProcessError(QProcess::ProcessError error);
-  void MessageArrived(const pyqtc::Message& message);
+  void MessageArrived(const pyqtc::pb::Message& message);
 
   void WorkerConnected(int index);
 
 private:
-  WorkerReply* SendMessage(pyqtc::Message* message);
+  WorkerReply* SendMessage(pyqtc::pb::Message* message);
 
 private:
   struct Worker {
@@ -45,7 +48,7 @@ private:
   int next_id_;
 
   QMap<int, WorkerReply*> pending_replies_;
-  QQueue<pyqtc::Message> queued_requests_;
+  QQueue<pyqtc::pb::Message> queued_requests_;
 };
 
 } // namespace

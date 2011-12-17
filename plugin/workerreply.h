@@ -15,9 +15,9 @@ public:
 
   int id() const { return id_; }
   bool is_finished() const { return finished_; }
-  const Message& message() const { return message_; }
+  const pb::Message& message() const { return message_; }
 
-  void SetReply(const Message& message);
+  void SetReply(const pb::Message& message);
 
 signals:
   void Finished();
@@ -25,7 +25,7 @@ signals:
 private:
   int id_;
   bool finished_;
-  Message message_;
+  pb::Message message_;
 };
 
 } // namespace

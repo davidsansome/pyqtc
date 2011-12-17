@@ -1,4 +1,4 @@
-package pyqtc;
+package pyqtc.pb;
 
 import "codemodel.proto";
 

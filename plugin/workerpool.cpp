@@ -76,12 +76,12 @@ void WorkerPool::WorkerConnected(int index) {
   worker->handler_ = new MessageHandler(worker->server_->nextPendingConnection(),
                                         this);
 
-  connect(worker->handler_, SIGNAL(MessageArrived(pyqtc::Message)),
-          SLOT(MessageArrived(pyqtc::Message)));
+  connect(worker->handler_, SIGNAL(MessageArrived(pyqtc::pb::Message)),
+          SLOT(MessageArrived(pyqtc::pb::Message)));
 
   // Send any queued messages
   while (!queued_requests_.isEmpty()) {
-    Message message = queued_requests_.dequeue();
+    pb::Message message = queued_requests_.dequeue();
     SendMessage(&message);
   }
 }
@@ -90,7 +90,7 @@ void WorkerPool::ProcessError(QProcess::ProcessError error) {
   qDebug() << "Process failed:" << error;
 }
 
-WorkerReply* WorkerPool::SendMessage(pyqtc::Message* message) {
+WorkerReply* WorkerPool::SendMessage(pyqtc::pb::Message* message) {
   int id = -1;
 
   if (message->has_id()) {
@@ -127,13 +127,13 @@ WorkerReply* WorkerPool::SendMessage(pyqtc::Message* message) {
 }
 
 WorkerReply* WorkerPool::ParseFile(const QString& filename) {
-  Message request;
+  pb::Message request;
   request.mutable_parse_file_request()->set_filename(filename);
 
   return SendMessage(&request);
 }
 
-void WorkerPool::MessageArrived(const pyqtc::Message& message) {
+void WorkerPool::MessageArrived(const pyqtc::pb::Message& message) {
   if (!message.has_id()) {
     qDebug() << "Received message with no ID:" <<
                 QStringFromStdString(message.DebugString());

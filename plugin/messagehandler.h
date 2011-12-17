@@ -35,7 +35,9 @@ class QLocalSocket;
 
 namespace pyqtc {
 
-class Message;
+namespace pb {
+  class Message;
+}
 
 class MessageHandler : public QObject {
   Q_OBJECT
@@ -43,11 +45,11 @@ class MessageHandler : public QObject {
 public:
   MessageHandler(QLocalSocket* device, QObject* parent);
 
-  void SendMessage(const Message& message);
-  void SendMessageAsync(const Message& message);
+  void SendMessage(const pb::Message& message);
+  void SendMessageAsync(const pb::Message& message);
 
 signals:
-  void MessageArrived(const pyqtc::Message& message);
+  void MessageArrived(const pyqtc::pb::Message& message);
 
 private slots:
   void WriteMessage(const QByteArray& data);
