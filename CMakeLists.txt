@@ -11,5 +11,6 @@ include(cmake/Pylint.cmake)
 
 set(WORKER_SOURCE_PATH ${CMAKE_BINARY_DIR}/parser/main.py)
 
+add_subdirectory(protoc-gen-cpp_qt)
 add_subdirectory(parser)
 add_subdirectory(plugin)
