@@ -55,6 +55,7 @@ class Scope(object):
     ast.Break,
     ast.Continue,
     ast.Delete,
+    ast.Exec,
     ast.Expr,
     ast.Pass,
     ast.Print,
@@ -148,6 +149,26 @@ class Scope(object):
     for child in children:
       self.HandleChildNode(ctx, child)
 
+  def _GetArgNames(self, thing):
+    """
+    Returns a generator that yields an ast.Name for each argument in "thing",
+    which should be an ast.arguments instance.
+    Copes with nested tuples as arguments.
+    """
+
+    if isinstance(thing, ast.arguments):
+      for arg in thing.args:
+        for name in self._GetArgNames(arg):
+          yield name
+
+    elif isinstance(thing, ast.Name):
+      yield thing
+
+    elif isinstance(thing, ast.Tuple):
+      for elt in thing.elts:
+        for name in self._GetArgNames(elt):
+          yield name
+
   def HandleChildNode(self, ctx, node):
     """
     Creates the right Thing subclass for this node, and adds it to this scope's
@@ -168,7 +189,7 @@ class Scope(object):
       func = self.AddScope(ctx, node)
 
       # Add arguments
-      for index, arg_name in enumerate(node.args.args):
+      for index, arg_name in enumerate(self._GetArgNames(node.args)):
         arg = func.AddVariable(ctx, node, arg_name.id, codemodel_pb2.Variable.FUNCTION_ARGUMENT)
 
         if index == 0 and self.pb.type == codemodel_pb2.Scope.CLASS:
@@ -191,8 +212,12 @@ class Scope(object):
       self.HandleChildNodes(ctx, node.body)
       self.HandleChildNodes(ctx, node.orelse)
 
-      for _handler in getattr(node, "handlers", []):
+      for _handler in node.handlers:
         self.HandleChildNodes(ctx, node.body)
+
+    elif isinstance(node, ast.TryFinally):
+      self.HandleChildNodes(ctx, node.body)
+      self.HandleChildNodes(ctx, node.finalbody)
 
     elif isinstance(node, ast.Assign):
       for target in node.targets:
