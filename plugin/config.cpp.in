@@ -1,0 +1,9 @@
+#include "config.h"
+
+namespace pyqtc {
+namespace config {
+
+const char* kWorkerSourcePath = "@WORKER_SOURCE_PATH@";
+
+}
+}

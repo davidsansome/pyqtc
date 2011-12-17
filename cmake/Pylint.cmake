@@ -11,7 +11,7 @@ macro(check_python)
     get_filename_component(absolute_file ${file} ABSOLUTE)
     get_filename_component(file_we ${file} NAME_WE)
 
-    set(output ${CMAKE_CURRENT_BINARY_DIR}/${file_we}.dummy)
+    set(output ${CMAKE_CURRENT_BINARY_DIR}/${file_we}.py)
 
     add_custom_command(
       OUTPUT ${output}
@@ -20,7 +20,7 @@ macro(check_python)
              ${PYLINT_EXECUTABLE}
              --rcfile=${CMAKE_SOURCE_DIR}/cmake/pylint.rc
              ${absolute_file}
-      COMMAND ${CMAKE_COMMAND} ARGS -E touch ${output}
+      COMMAND ${CMAKE_COMMAND} ARGS -E copy ${absolute_file} ${output}
       DEPENDS ${absolute_file} ${CHECK_PYTHON_DEPENDS}
       COMMENT "Checking Python source ${file}"
     )

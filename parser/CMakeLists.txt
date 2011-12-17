@@ -1,14 +1,16 @@
-protobuf_generate_python(CODEMODEL_PB2
+protobuf_generate_python(PROTOBUF_SOURCE
   ${CMAKE_SOURCE_DIR}/common/codemodel.proto
+  ${CMAKE_SOURCE_DIR}/common/rpc.proto
 )
 
 check_python(
   OUTPUT PYTHON
-  DEPENDS ${CODEMODEL_PB2}
-  SOURCE parse.py
+  DEPENDS ${PROTOBUF_SOURCE}
+  SOURCE main.py
+         parse.py
 )
 
 add_custom_target(parser ALL
   DEPENDS ${PYTHON}
-          ${CODEMODEL_PB2}
+          ${PROTOBUF_SOURCE}
 )

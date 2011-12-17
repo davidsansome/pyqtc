@@ -1,5 +1,7 @@
+#include "codemodel.h"
 #include "plugin.h"
 #include "pythonfilter.h"
+#include "workerpool.h"
 
 #include <coreplugin/icore.h>
 #include <coreplugin/icontext.h>
@@ -18,7 +20,10 @@
 
 using namespace pyqtc;
 
-Plugin::Plugin() {
+Plugin::Plugin()
+  : worker_pool_(new WorkerPool(this)),
+    code_model_(NULL)
+{
 }
 
 Plugin::~Plugin() {
@@ -27,6 +32,8 @@ Plugin::~Plugin() {
 bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
   Q_UNUSED(arguments)
   Q_UNUSED(errorString)
+
+  code_model_ = new CodeModel(worker_pool_);
 
   addAutoReleasedObject(new PythonFilter);
 

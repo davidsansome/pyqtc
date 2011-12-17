@@ -4,6 +4,8 @@ set(QTC_BUILD  "/home/david/src/qt-creator" CACHE STRING "Qt Creator binary dire
 set(LIBRARY_OUTPUT_PATH ${QTC_BUILD}/lib/qtcreator/plugins/davidsansome)
 
 include_directories(
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${QTC_BUILD}/src
   ${QTC_SOURCE}/src/libs
   ${QTC_SOURCE}/src/plugins
@@ -21,14 +23,31 @@ add_definitions(
   ${QT_DEFINITIONS}
 )
 
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/config.cpp.in
+  ${CMAKE_CURRENT_BINARY_DIR}/config.cpp
+  @ONLY
+)
+
 set(SOURCES
+  ${CMAKE_CURRENT_BINARY_DIR}/config.cpp
+  closure.cpp
+  codemodel.cpp
+  messagehandler.cpp
   plugin.cpp
   pythonfilter.cpp
+  workerpool.cpp
+  workerreply.cpp
 )
 
 set(HEADERS
+  closure.h
+  codemodel.h
+  messagehandler.h
   plugin.h
   pythonfilter.h
+  workerpool.h
+  workerreply.h
 )
 
 set(UI)
@@ -39,9 +58,14 @@ qt4_wrap_cpp(MOC ${HEADERS})
 qt4_wrap_ui(UIC ${UI})
 qt4_add_resources(QRC ${RESOURCES})
 
+protobuf_generate_cpp(PROTO_SOURCES PROTO_HEADERS
+  ${CMAKE_SOURCE_DIR}/common/codemodel.proto
+  ${CMAKE_SOURCE_DIR}/common/rpc.proto
+)
 
 add_library(pyqtc SHARED
   ${SOURCES}
+  ${PROTO_SOURCES}
   ${MOC}
   ${UIC}
   ${QRC}
@@ -49,13 +73,15 @@ add_library(pyqtc SHARED
 
 target_link_libraries(pyqtc
   Aggregation
-  ExtensionSystem
   Botan
-  Utils
   Core
+  ExtensionSystem
   Locator
+  ProjectExplorer
+  Utils
   ${QT_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
+  ${PROTOBUF_LIBRARY}
 )
 
 configure_file(pyqtc.pluginspec ${LIBRARY_OUTPUT_PATH} COPY_ONLY)

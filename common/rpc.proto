@@ -1,0 +1,24 @@
+package pyqtc;
+
+import "codemodel.proto";
+
+message Message {
+  optional int32 id = 1;
+
+  optional ParseFileRequest parse_file_request = 2;
+  optional ParseFileResponse parse_file_response = 3;
+
+  optional ErrorResponse error_response = 4;
+}
+
+message ParseFileRequest {
+  optional string filename = 1;
+}
+
+message ParseFileResponse {
+  optional Scope module = 1;
+}
+
+message ErrorResponse {
+  optional string message = 1;
+}

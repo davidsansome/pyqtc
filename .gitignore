@@ -4,3 +4,4 @@ Makefile
 *.pyc
 bin
 *~
+CMakeLists.txt.user

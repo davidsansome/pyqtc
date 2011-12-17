@@ -3,6 +3,7 @@ Converts an AST to a CodeModel protobuf.
 """
 
 import ast
+import logging
 import sys
 import weakref
 
@@ -56,11 +57,12 @@ class Scope(object):
     ast.Delete,
     ast.Expr,
     ast.Pass,
+    ast.Print,
     ast.Raise,
     ast.Return,
   )
 
-  def __init__(self, ctx, node, parent=None):
+  def __init__(self, ctx, node, parent=None, pb=None):
     self.members = {}
     self.global_ids = set()
     self.parent = WeakrefOrNone(parent)
@@ -69,7 +71,10 @@ class Scope(object):
 
     # Add ourself to the parent
     if parent is None:
-      self.pb = codemodel_pb2.Scope()
+      if pb is None:
+        self.pb = codemodel_pb2.Scope()
+      else:
+        self.pb = pb
     else:
       self.pb = parent.pb.child_scope.add()
 
@@ -207,7 +212,7 @@ class Scope(object):
       pass
 
     else:
-      print "Unhandled %s" % node.__class__.__name__
+      logging.warning("Unhandled %s", node.__class__.__name__)
 
   def ResolveIdentifier(self, name):
     """
@@ -240,8 +245,6 @@ def Main():
   ctx = ParseContext(filename)
   scope = Scope(ctx, root)
   scope.Populate(ctx)
-
-  print scope.pb
 
 
 if __name__ == "__main__":

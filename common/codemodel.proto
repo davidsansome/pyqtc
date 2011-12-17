@@ -1,4 +1,4 @@
-package codemodel;
+package pyqtc;
 
 message Position {
   optional string filename = 1;
