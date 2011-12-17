@@ -1,9 +1,14 @@
 #include "codemodel.h"
 #include "pythonfilter.h"
 
+#include <texteditor/itexteditor.h>
+#include <texteditor/basetexteditor.h>
+
 using namespace Locator;
 
 using namespace pyqtc;
+
+Q_DECLARE_METATYPE(pyqtc::pb::Position)
 
 
 PythonFilter::PythonFilter(CodeModel* model, QObject* parent)
@@ -11,6 +16,8 @@ PythonFilter::PythonFilter(CodeModel* model, QObject* parent)
     model_(model)
 {
   setIncludedByDefault(true);
+
+  qRegisterMetaType<pyqtc::pb::Position>("pyqtc::pb::Position");
 }
 
 QList<FilterEntry> PythonFilter::matchesFor(QFutureInterface<FilterEntry>& future,
@@ -29,7 +36,8 @@ void PythonFilter::WalkScope(Scope* scope, const QString& query,
                              QList<Locator::FilterEntry>* entries) {
   if (scope->type() != pb::Scope_Type_MODULE &&
       scope->name().contains(query, Qt::CaseInsensitive)) {
-    FilterEntry entry(this, scope->name(), QVariant());
+    FilterEntry entry(this, scope->name(),
+                      QVariant::fromValue(scope->declaration_pos()));
     entry.extraInfo = scope->ParentDottedName();
     entry.displayIcon = scope->icon();
 
@@ -42,6 +50,11 @@ void PythonFilter::WalkScope(Scope* scope, const QString& query,
 }
 
 void PythonFilter::accept(Locator::FilterEntry selection) const {
+  pyqtc::pb::Position position = selection.internalData.value<pyqtc::pb::Position>();
+
+  TextEditor::BaseTextEditorWidget::openEditorAt(
+        position.filename(), position.line(), position.column(),
+        Core::Id(), Core::EditorManager::ModeSwitch);
 }
 
 void PythonFilter::refresh(QFutureInterface<void>& future) {
