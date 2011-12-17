@@ -62,6 +62,8 @@ void CodeModel::UpdateProject(ProjectExplorer::Project* project) {
     if (files_.contains(filename))
       continue;
 
+    files_[filename].project_ = project;
+
     WorkerReply* reply = worker_pool_->ParseFile(filename);
     NewClosure(reply, SIGNAL(Finished()),
                this, SLOT(ParseFileFinished(WorkerReply*,QString)),
@@ -79,8 +81,13 @@ void CodeModel::UpdateProject(ProjectExplorer::Project* project) {
 }
 
 void CodeModel::ParseFileFinished(WorkerReply* reply, const QString& filename) {
-  qDebug() << "Parse finished" << filename
-           << QStringFromStdString(reply->message().parse_file_response().DebugString());
-
   reply->deleteLater();
+
+  FilesMap::iterator it = files_.find(filename);
+  if (it == files_.end()) {
+    // The filename doesn't exist any more, maybe the project was closed already
+    return;
+  }
+
+  it->scope_ = reply->message().parse_file_response().module();
 }

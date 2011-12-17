@@ -35,7 +35,7 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
 
   code_model_ = new CodeModel(worker_pool_);
 
-  addAutoReleasedObject(new PythonFilter);
+  addAutoReleasedObject(new PythonFilter(code_model_));
 
   return true;
 }

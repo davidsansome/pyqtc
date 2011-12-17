@@ -128,8 +128,7 @@ WorkerReply* WorkerPool::SendMessage(pyqtc::Message* message) {
 
 WorkerReply* WorkerPool::ParseFile(const QString& filename) {
   Message request;
-  request.mutable_parse_file_request()->set_filename(
-        DataCommaSizeFromQString(filename));
+  request.mutable_parse_file_request()->set_filename(filename);
 
   return SendMessage(&request);
 }

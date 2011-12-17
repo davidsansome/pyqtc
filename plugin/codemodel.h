@@ -23,6 +23,14 @@ class CodeModel : public QObject {
 public:
   CodeModel(WorkerPool* worker_pool, QObject* parent = 0);
 
+  struct File {
+    ProjectExplorer::Project* project_;
+    Scope scope_;
+  };
+
+  typedef QMap<QString, File> FilesMap;
+  const FilesMap& files() const { return files_; }
+
 private slots:
   void ProjectAdded(ProjectExplorer::Project* project);
   void AboutToRemoveProject(ProjectExplorer::Project* project);
@@ -34,14 +42,8 @@ private:
   void UpdateProject(ProjectExplorer::Project* project);
 
 private:
-  struct File {
-    ProjectExplorer::Project* project_;
-    Scope scope_;
-  };
-
   WorkerPool* worker_pool_;
 
-  typedef QMap<QString, File> FilesMap;
   FilesMap files_;
 };
 

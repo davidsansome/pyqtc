@@ -58,7 +58,7 @@ qt4_wrap_cpp(MOC ${HEADERS})
 qt4_wrap_ui(UIC ${UI})
 qt4_add_resources(QRC ${RESOURCES})
 
-protobuf_generate_cpp(PROTO_SOURCES PROTO_HEADERS
+protobuf_generate_cpp_qt(PROTO_SOURCES
   ${CMAKE_SOURCE_DIR}/common/codemodel.proto
   ${CMAKE_SOURCE_DIR}/common/rpc.proto
 )

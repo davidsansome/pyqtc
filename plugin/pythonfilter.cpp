@@ -1,20 +1,4 @@
-/* This file is part of Clementine.
-   Copyright 2011, David Sansome <me@davidsansome.com>
-
-   Clementine is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   Clementine is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with Clementine.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+#include "codemodel.h"
 #include "pythonfilter.h"
 
 using namespace Locator;
@@ -22,8 +6,9 @@ using namespace Locator;
 using namespace pyqtc;
 
 
-PythonFilter::PythonFilter(QObject* parent)
-  : ILocatorFilter(parent)
+PythonFilter::PythonFilter(CodeModel* model, QObject* parent)
+  : ILocatorFilter(parent),
+    model_(model)
 {
   setIncludedByDefault(true);
 }
@@ -31,7 +16,25 @@ PythonFilter::PythonFilter(QObject* parent)
 QList<FilterEntry> PythonFilter::matchesFor(QFutureInterface<FilterEntry>& future,
                                             const QString& entry) {
   QList<FilterEntry> ret;
+
+  for (CodeModel::FilesMap::const_iterator it = model_->files().begin() ;
+       it != model_->files().end() ; ++it) {
+    WalkScope(it.value().scope_, entry, &ret);
+  }
+
   return ret;
+}
+
+void PythonFilter::WalkScope(const Scope& scope, const QString& query,
+                             QList<Locator::FilterEntry>* entries) {
+  if (scope.name().contains(query, Qt::CaseInsensitive)) {
+    FilterEntry entry(this, scope.name(), QVariant());
+    entries->append(entry);
+  }
+
+  for (int i=0 ; i<scope.child_scope_size() ; ++i) {
+    WalkScope(scope.child_scope(i), query, entries);
+  }
 }
 
 void PythonFilter::accept(Locator::FilterEntry selection) const {
