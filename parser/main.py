@@ -21,11 +21,17 @@ def ParseFile(request, response):
   with open(request.filename) as handle:
     source = handle.read()
 
-  root = ast.parse(source, request.filename)
-
-  ctx = parse.ParseContext(request.filename)
-  scope = parse.Scope(ctx, root, pb=response.module)
-  scope.Populate(ctx)
+  try:
+    root = ast.parse(source, request.filename)
+  except SyntaxError, ex:
+    response.syntax_error.position.filename = ex.filename
+    response.syntax_error.position.line     = ex.lineno
+    response.syntax_error.position.column   = ex.offset
+    response.syntax_error.text              = ex.text
+  else:
+    ctx = parse.ParseContext(request.filename)
+    scope = parse.Scope(ctx, root, pb=response.module)
+    scope.Populate(ctx)
 
 
 class ShortReadError(Exception):

@@ -16,7 +16,13 @@ message ParseFileRequest {
 }
 
 message ParseFileResponse {
+  message SyntaxError {
+    optional Position position = 1;
+    optional string text = 2;
+  }
+
   optional Scope module = 1;
+  optional SyntaxError syntax_error = 2;
 }
 
 message ErrorResponse {
