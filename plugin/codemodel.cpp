@@ -128,6 +128,17 @@ QString CodeModel::DottedModuleName(const QString& filename) {
   return ret;
 }
 
+File* CodeModel::FindFile(const QString& name) {
+  FilesMap::const_iterator it = files_.find(name);
+  if (it == files_.end())
+    return NULL;
+  return it.value();
+}
+
+CodeModel::FilesMap CodeModel::AllFiles() {
+  return files_;
+}
+
 
 
 File::File(const QString& filename, ProjectExplorer::Project* project,

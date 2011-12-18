@@ -85,7 +85,9 @@ public:
   static const char* kUnknownModuleName;
 
   typedef QMap<QString, File*> FilesMap;
-  const FilesMap& files() const { return files_; }
+
+  File* FindFile(const QString& name);
+  FilesMap AllFiles();
 
 private slots:
   void ProjectAdded(ProjectExplorer::Project* project);

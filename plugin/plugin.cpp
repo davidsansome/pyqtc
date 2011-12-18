@@ -36,6 +36,9 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
   code_model_ = new CodeModel(worker_pool_);
 
   addAutoReleasedObject(new PythonFilter(code_model_));
+  addAutoReleasedObject(new PythonCurrentDocumentFilter(code_model_));
+  addAutoReleasedObject(new PythonClassFilter(code_model_));
+  addAutoReleasedObject(new PythonFunctionFilter(code_model_));
 
   return true;
 }
