@@ -38,7 +38,7 @@ QList<FilterEntry> PythonFilter::matchesFor(QFutureInterface<FilterEntry>& futur
   QList<FilterEntry> ret;
 
   if (current_file_only_) {
-    File* file = model_->FindFile(current_filename_);
+    const File* file = model_->FileByFilename(current_filename_);
     if (file) {
       WalkScope(file, entry, &ret);
     }
@@ -59,7 +59,7 @@ QList<FilterEntry> PythonFilter::matchesFor(QFutureInterface<FilterEntry>& futur
   return ret;
 }
 
-void PythonFilter::WalkScope(Scope* scope, const QString& query,
+void PythonFilter::WalkScope(const Scope* scope, const QString& query,
                              QList<Locator::FilterEntry>* entries) {
 
   const bool matches_type =
@@ -70,13 +70,13 @@ void PythonFilter::WalkScope(Scope* scope, const QString& query,
   if (matches_type && scope->name().contains(query, Qt::CaseInsensitive)) {
     FilterEntry entry(this, scope->name(),
                       QVariant::fromValue(scope->declaration_pos()));
-    entry.extraInfo = scope->ParentDottedName();
+    entry.extraInfo = scope->full_dotted_name();
     entry.displayIcon = scope->icon();
 
     entries->append(entry);
   }
 
-  foreach (Scope* child_scope, scope->children()) {
+  foreach (const Scope* child_scope, scope->child_scopes()) {
     WalkScope(child_scope, query, entries);
   }
 }

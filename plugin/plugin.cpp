@@ -1,4 +1,5 @@
 #include "codemodel.h"
+#include "completionassist.h"
 #include "plugin.h"
 #include "pythonfilter.h"
 #include "workerpool.h"
@@ -39,6 +40,8 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
   addAutoReleasedObject(new PythonCurrentDocumentFilter(code_model_));
   addAutoReleasedObject(new PythonClassFilter(code_model_));
   addAutoReleasedObject(new PythonFunctionFilter(code_model_));
+
+  addAutoReleasedObject(new CompletionAssistProvider(code_model_));
 
   return true;
 }

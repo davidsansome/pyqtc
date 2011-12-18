@@ -43,7 +43,7 @@ private slots:
   void CurrentEditorChanged(Core::IEditor* editor);
 
 private:
-  void WalkScope(Scope* scope, const QString& query,
+  void WalkScope(const Scope* scope, const QString& query,
                  QList<Locator::FilterEntry>* entries);
 
 private:

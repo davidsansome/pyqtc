@@ -34,7 +34,9 @@ set(SOURCES
   ${CMAKE_CURRENT_BINARY_DIR}/config.cpp
   closure.cpp
   codemodel.cpp
+  completionassist.cpp
   messagehandler.cpp
+  miniparser.cpp
   plugin.cpp
   pythonfilter.cpp
   workerpool.cpp
