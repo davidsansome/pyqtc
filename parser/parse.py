@@ -221,23 +221,37 @@ class Scope(object):
 
     elif isinstance(node, ast.Assign):
       for target in node.targets:
-        if isinstance(target, ast.Name):
-          self.AddVariable(ctx, node, target.id, codemodel_pb2.Variable.SCOPE_VARIABLE)
+        self.HandleVariableAssignment(ctx, target)
 
-        elif isinstance(target, ast.Attribute):
-          if isinstance(target.value, ast.Name):
-            # Only support one level deep attribute assignments (like self.foo)
-            # for now.  In the future we should resolve whole chains like
-            # self.foo.bar.baz.
-            parent = self.ResolveIdentifier(target.value.id)
-            if isinstance(parent, Scope):
-              parent.AddVariable(ctx, node, target.attr, codemodel_pb2.Variable.SCOPE_VARIABLE)
+    elif isinstance(node, ast.With):
+      if node.optional_vars is not None:
+        self.HandleVariableAssignment(ctx, node.optional_vars)
+      
+      self.HandleChildNodes(ctx, node.body)
 
     elif isinstance(node, self.IGNORED_NODES):
       pass
 
     else:
       logging.warning("Unhandled %s", node.__class__.__name__)
+
+  def HandleVariableAssignment(self, ctx, target):
+    """
+    Adds a scope variable to this scope for "target", which can be a name or an
+    attribute access.
+    """
+    
+    if isinstance(target, ast.Name):
+      self.AddVariable(ctx, target, target.id, codemodel_pb2.Variable.SCOPE_VARIABLE)
+    
+    elif isinstance(target, ast.Attribute):
+      if isinstance(target.value, ast.Name):
+        # Only support one level deep attribute assignments (like self.foo)
+        # for now.  In the future we should resolve whole chains like
+        # self.foo.bar.baz.
+        parent = self.ResolveIdentifier(target.value.id)
+        if isinstance(parent, Scope):
+          parent.AddVariable(ctx, target, target.attr, codemodel_pb2.Variable.SCOPE_VARIABLE)
 
   def ResolveIdentifier(self, name):
     """
