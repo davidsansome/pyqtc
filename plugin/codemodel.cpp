@@ -123,7 +123,7 @@ void CodeModel::UpdateProject(ProjectExplorer::Project* project) {
 
   // Remove files that are no longer in the project
   for (FilesMap::iterator it = files_.begin() ; it != files_.end() ; ) {
-    if (filenames.contains(it.key())) {
+    if (it.value()->project() != project || filenames.contains(it.key())) {
       ++it;
     } else {
       RemoveFile(it.value());
