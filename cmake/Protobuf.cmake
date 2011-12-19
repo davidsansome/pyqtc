@@ -1,4 +1,4 @@
-find_package(Protobuf REQUIRED)
+find_package(Protobuf 2.4.1 REQUIRED)
 
 function(PROTOBUF_GENERATE_PYTHON OUTPUT)
   if(NOT ARGN)

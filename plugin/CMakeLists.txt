@@ -88,4 +88,4 @@ target_link_libraries(pyqtc
   ${PROTOBUF_LIBRARY}
 )
 
-configure_file(pyqtc.pluginspec ${LIBRARY_OUTPUT_PATH} COPY_ONLY)
+configure_file(pyqtc.pluginspec ${LIBRARY_OUTPUT_PATH}/pyqtc.pluginspec COPY_ONLY)
