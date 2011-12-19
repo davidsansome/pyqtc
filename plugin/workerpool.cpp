@@ -82,6 +82,7 @@ void WorkerPool::WorkerConnected(int index) {
   // Send any queued messages
   while (!queued_requests_.isEmpty()) {
     pb::Message message = queued_requests_.dequeue();
+    qDebug() << "Sending queued message";
     SendMessage(&message);
   }
 }
@@ -90,16 +91,19 @@ void WorkerPool::ProcessError(QProcess::ProcessError error) {
   qDebug() << "Process failed:" << error;
 }
 
-WorkerReply* WorkerPool::SendMessage(pyqtc::pb::Message* message) {
-  int id = -1;
+WorkerReply* WorkerPool::SendNewMessage(pyqtc::pb::Message* message) {
+  int id = next_id_ ++;
+  message->set_id(id);
 
-  if (message->has_id()) {
-    id = message->id();
-  } else {
-    id = next_id_ ++;
-    message->set_id(id);
-  }
+  SendMessage(message);
 
+  WorkerReply* reply = new WorkerReply(id);
+  pending_replies_[id] = reply;
+
+  return reply;
+}
+
+void WorkerPool::SendMessage(pyqtc::pb::Message* message) {
   // Find a worker that is connected
   int using_worker = -1;
 
@@ -119,18 +123,20 @@ WorkerReply* WorkerPool::SendMessage(pyqtc::pb::Message* message) {
   } else {
     workers_[using_worker].handler_->SendMessage(*message);
   }
-
-  WorkerReply* reply = new WorkerReply(id);
-  pending_replies_[id] = reply;
-
-  return reply;
 }
 
 WorkerReply* WorkerPool::ParseFile(const QString& filename) {
   pb::Message request;
   request.mutable_parse_file_request()->set_filename(filename);
 
-  return SendMessage(&request);
+  return SendNewMessage(&request);
+}
+
+WorkerReply* WorkerPool::GetPythonPath() {
+  pb::Message request;
+  request.mutable_get_python_path_request();
+  
+  return SendNewMessage(&request);
 }
 
 void WorkerPool::MessageArrived(const pyqtc::pb::Message& message) {

@@ -127,11 +127,19 @@ private slots:
   void ProjectFilesChanged(ProjectExplorer::Project* project);
 
   void ParseFileFinished(WorkerReply* reply, const QString& filename,
+                         const QString& path_directory,
                          ProjectExplorer::Project* project);
+  
+  void GetPythonPathFinished(WorkerReply* reply);
 
 private:
+  static bool PathHasInitPy(const QString& path);
+  void WalkPythonPath(const QString& root_path, const QString& path);
+  
   void UpdateProject(ProjectExplorer::Project* project);
   static QString DottedModuleName(const QString& filename);
+  static QString DottedModuleName(const QString& filename,
+                                  const QString& path_directory);
 
   void AddFile(File* file);
   void RemoveFile(File* file);

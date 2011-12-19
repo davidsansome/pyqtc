@@ -32,11 +32,61 @@ CodeModel::CodeModel(WorkerPool* worker_pool, QObject* parent)
           SLOT(ProjectAdded(ProjectExplorer::Project*)));
   connect(session, SIGNAL(aboutToRemoveProject(ProjectExplorer::Project *)),
           this, SLOT(AboutToRemoveProject(ProjectExplorer::Project*)));
+  
+  // Get the current pythonpath
+  WorkerReply* reply = worker_pool->GetPythonPath();
+  NewClosure(reply, SIGNAL(Finished()),
+             this, SLOT(GetPythonPathFinished(WorkerReply*)),
+             reply);
+}
+
+bool CodeModel::PathHasInitPy(const QString& path) {
+  return QFile::exists(path + "/__init__.py") ||
+         QFile::exists(path + "/__init__.pyc") ||
+         QFile::exists(path + "/__init__.pyo");
+}
+
+void CodeModel::GetPythonPathFinished(WorkerReply* reply) {
+  reply->deleteLater();
+  
+  // Parse all the files in the pythonpath
+  foreach (const QString& path,
+           reply->message().get_python_path_response().path_entry()) {
+    WalkPythonPath(path, path);
+  }
+}
+
+void CodeModel::WalkPythonPath(const QString& root_path, const QString& path) {
+  // Check for an __init__.py in this directory if it's a package.
+  if ((root_path != path) && !PathHasInitPy(path)) {
+    return;
+  }
+  
+  // Find .py files in this directory
+  QDirIterator py_file_it(
+        path, QStringList() << "*.py",
+        QDir::Files | QDir::NoDotAndDotDot | QDir::Readable,
+        QDirIterator::FollowSymlinks);
+  
+  while (py_file_it.hasNext()) {
+    const QString filename = py_file_it.next();
+    WorkerReply* reply = worker_pool_->ParseFile(filename);
+    NewClosure(reply, SIGNAL(Finished()),
+               this, SLOT(ParseFileFinished(WorkerReply*,QString,QString,ProjectExplorer::Project*)),
+               reply, filename, root_path, NULL);
+  }
+  
+  // Find subdirectories in this directory
+  QDirIterator subdirectory_it(
+        path, QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable,
+        QDirIterator::FollowSymlinks);
+  
+  while (subdirectory_it.hasNext()) {
+    WalkPythonPath(root_path, subdirectory_it.next());
+  }
 }
 
 void CodeModel::ProjectAdded(ProjectExplorer::Project* project) {
-  qDebug() << "Project added" << project->displayName();
-
   NewClosure(project, SIGNAL(fileListChanged()),
              this, SLOT(ProjectFilesChanged(ProjectExplorer::Project*)), project)
       ->SetSingleShot(false);
@@ -45,7 +95,7 @@ void CodeModel::ProjectAdded(ProjectExplorer::Project* project) {
 }
 
 void CodeModel::AboutToRemoveProject(ProjectExplorer::Project* project) {
-  qDebug() << "Project removed" << project->displayName();
+  // TODO
 }
 
 void CodeModel::ProjectFilesChanged(ProjectExplorer::Project* project) {
@@ -67,8 +117,8 @@ void CodeModel::UpdateProject(ProjectExplorer::Project* project) {
 
     WorkerReply* reply = worker_pool_->ParseFile(filename);
     NewClosure(reply, SIGNAL(Finished()),
-               this, SLOT(ParseFileFinished(WorkerReply*,QString,ProjectExplorer::Project*)),
-               reply, filename, project);
+               this, SLOT(ParseFileFinished(WorkerReply*,QString,QString,ProjectExplorer::Project*)),
+               reply, filename, QString(), project);
   }
 
   // Remove files that are no longer in the project
@@ -82,6 +132,7 @@ void CodeModel::UpdateProject(ProjectExplorer::Project* project) {
 }
 
 void CodeModel::ParseFileFinished(WorkerReply* reply, const QString& filename,
+                                  const QString& path_directory,
                                   ProjectExplorer::Project* project) {
   reply->deleteLater();
 
@@ -89,8 +140,10 @@ void CodeModel::ParseFileFinished(WorkerReply* reply, const QString& filename,
     delete files_[filename];
   }
 
-  const QString module_name = DottedModuleName(filename);
-
+  const QString module_name = path_directory.isEmpty() ? 
+        DottedModuleName(filename) :
+        DottedModuleName(filename, path_directory);
+  
   AddFile(new File(filename, module_name, project,
                    reply->message().parse_file_response().module()));
 }
@@ -183,11 +236,8 @@ QString CodeModel::DottedModuleName(const QString& filename) {
   QString path = filename.left(slash);
 
   while (slash != -1) {
-    if (!QFile::exists(path + "/__init__.py") &&
-        !QFile::exists(path + "/__init__.pyc") &&
-        !QFile::exists(path + "/__init__.pyo")) {
+    if (!PathHasInitPy(path))
       break;
-    }
 
     slash = path.lastIndexOf('/');
     ret.prepend(path.mid(slash + 1) + ".");
@@ -195,6 +245,25 @@ QString CodeModel::DottedModuleName(const QString& filename) {
   }
 
   return ret;
+}
+
+QString CodeModel::DottedModuleName(const QString& filename,
+                                    const QString& path_directory) {
+  // Get the module name for a file that is inside a PYTHONPATH directory.
+  
+  if (filename.isEmpty() || path_directory.isEmpty()) {
+    return kUnknownModuleName;
+  }
+  
+  const QDir path(path_directory);
+  QString relative_filename = path.relativeFilePath(filename);
+  
+  // Remove the .py extension
+  const int dot_py = relative_filename.lastIndexOf(".py");
+  relative_filename = relative_filename.mid(0, dot_py);
+  
+  const QStringList parts = relative_filename.split('/', QString::SkipEmptyParts);
+  return parts.join(".");
 }
 
 const File* CodeModel::FileByFilename(const QString& name) {

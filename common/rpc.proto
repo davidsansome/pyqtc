@@ -4,11 +4,14 @@ import "codemodel.proto";
 
 message Message {
   optional int32 id = 1;
+  
+optional ErrorResponse error_response = 2;
 
-  optional ParseFileRequest parse_file_request = 2;
-  optional ParseFileResponse parse_file_response = 3;
-
-  optional ErrorResponse error_response = 4;
+  optional ParseFileRequest parse_file_request = 3;
+  optional ParseFileResponse parse_file_response = 4;
+  
+  optional GetPythonPathRequest get_python_path_request = 5;
+  optional GetPythonPathResponse get_python_path_response = 6;
 }
 
 message ParseFileRequest {
@@ -23,6 +26,13 @@ message ParseFileResponse {
 
   optional Scope module = 1;
   optional SyntaxError syntax_error = 2;
+}
+
+message GetPythonPathRequest {
+}
+
+message GetPythonPathResponse {
+  repeated string path_entry = 1;
 }
 
 message ErrorResponse {

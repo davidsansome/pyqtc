@@ -26,6 +26,7 @@ public:
   ~WorkerPool();
 
   WorkerReply* ParseFile(const QString& filename);
+  WorkerReply* GetPythonPath();
 
 private slots:
   void ProcessError(QProcess::ProcessError error);
@@ -34,7 +35,8 @@ private slots:
   void WorkerConnected(int index);
 
 private:
-  WorkerReply* SendMessage(pyqtc::pb::Message* message);
+  WorkerReply* SendNewMessage(pyqtc::pb::Message* message);
+  void SendMessage(pyqtc::pb::Message* message);
 
 private:
   struct Worker {

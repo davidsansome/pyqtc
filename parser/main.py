@@ -34,6 +34,14 @@ def ParseFile(request, response):
     scope.Populate(ctx)
 
 
+def GetPythonPath(_request, response):
+  """
+  Handler for rpc_pb2.GetPythonPathRequest.
+  """
+  
+  response.path_entry.extend(sys.path)
+
+
 class ShortReadError(Exception):
   """
   An EOF was read from the input handle.
@@ -106,6 +114,9 @@ def Main(socket_filename):
     try:
       if request.HasField("parse_file_request"):
         ParseFile(request.parse_file_request, response.parse_file_response)
+      elif request.HasField("get_python_path_request"):
+        GetPythonPath(request.get_python_path_request,
+                      response.get_python_path_response)
       else:
         raise UnknownRequestType()
     except Exception, ex:
