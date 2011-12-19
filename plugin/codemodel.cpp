@@ -183,9 +183,9 @@ QString CodeModel::DottedModuleName(const QString& filename) {
   QString path = filename.left(slash);
 
   while (slash != -1) {
-    if (!QFile::exists(path + "/init.py") &&
-        !QFile::exists(path + "/init.pyc") &&
-        !QFile::exists(path + "/init.pyo")) {
+    if (!QFile::exists(path + "/__init__.py") &&
+        !QFile::exists(path + "/__init__.pyc") &&
+        !QFile::exists(path + "/__init__.pyo")) {
       break;
     }
 
