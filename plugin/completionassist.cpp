@@ -19,16 +19,15 @@ CompletionAssistProvider::CompletionAssistProvider(CodeModel* model)
 }
 
 bool CompletionAssistProvider::supportsEditor(const Core::Id& editorId) const {
-  qDebug() << __PRETTY_FUNCTION__ << editorId.toString();
   return true;
 }
 
 int CompletionAssistProvider::activationCharSequenceLength() const {
-  return 3;
+  return 1;
 }
 
 bool CompletionAssistProvider::isActivationCharSequence(const QString& sequence) const {
-  return true;
+  return sequence == ".";
 }
 
 TextEditor::IAssistProcessor* CompletionAssistProvider::createProcessor() const {
@@ -73,14 +72,11 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
   for (int i=0 ; i<parser.parts().count() - 1 ; ++i) {
     const QString name = parser.parts()[i].name_;
 
-    qDebug() << "Resolving" << name << "in" << possible_scopes.count() << "scopes";
-
     QList<const Scope*> new_possible_scopes;
 
     foreach (const Scope* scope, possible_scopes) {
       const Scope* target_scope = scope->GetChildScope(name);
       if (target_scope) {
-        qDebug() << "Found" << name << "as" << target_scope->full_dotted_name();
         if (target_scope->type() != pb::Scope_Type_FUNCTION) {
           new_possible_scopes << target_scope;
         }
@@ -89,13 +85,9 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
 
       const pb::Variable* target_variable = scope->GetChildVariable(name);
       if (target_variable) {
-        qDebug() << "Found" << name << "as a variable in" << scope->full_dotted_name()
-                 << "possible types are:" << target_variable->possible_type_id();
-
         foreach (const QString& type_name, target_variable->possible_type_id()) {
           const Scope* type_scope = model_->ScopeByTypeName(type_name, scope->module());
           if (type_scope) {
-            qDebug() << "Recognised type" << type_name << "for" << name;
             new_possible_scopes << type_scope;
           }
         }
@@ -104,8 +96,6 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
 
     possible_scopes = new_possible_scopes;
   }
-
-  qDebug() << "Populating completer with children of" << possible_scopes.count() << "scopes";
 
   const QString match_text = parser.parts().last().name_;
 
@@ -121,11 +111,8 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
       TextEditor::BasicProposalItem* item = new TextEditor::BasicProposalItem;
       item->setIcon(child_scope->icon());
       item->setText(child_scope->name());
-      item->setData(child_scope->name());
-      item->setDetail(scope->full_dotted_name());
+      item->setData(child_scope->name().mid(match_text.length()));
       items << item;
-
-      qDebug() << " - " << child_scope->full_dotted_name();
     }
 
     foreach (const pb::Variable* child_variable, scope->child_variables()) {
@@ -136,11 +123,8 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
       TextEditor::BasicProposalItem* item = new TextEditor::BasicProposalItem;
       item->setIcon(model_->IconForVariable(child_variable->name()));
       item->setText(child_variable->name());
-      item->setData(child_variable->name());
-      item->setDetail(child_variable->possible_type_id().join(", "));
+      item->setData(child_variable->name().mid(match_text.length()));
       items << item;
-
-      qDebug() << " - " << child_variable->name();
     }
   }
 
