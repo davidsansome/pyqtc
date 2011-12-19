@@ -25,9 +25,9 @@ def ParseFile(request, response):
     root = ast.parse(source, request.filename)
   except SyntaxError, ex:
     response.syntax_error.position.filename = ex.filename
-    response.syntax_error.position.line     = ex.lineno
-    response.syntax_error.position.column   = ex.offset
-    response.syntax_error.text              = ex.text
+    response.syntax_error.position.line     = ex.lineno or 0
+    response.syntax_error.position.column   = ex.offset or 0
+    response.syntax_error.text              = ex.text or str(ex)
   else:
     ctx = parse.ParseContext(request.filename)
     scope = parse.Scope(ctx, root, pb=response.module)
