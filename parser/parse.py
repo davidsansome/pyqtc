@@ -70,6 +70,7 @@ class Scope(object):
 
   def __init__(self, ctx, node, parent=None, pb=None, is_instance=False):
     self.members = {}
+    self.member_variable_names = set()
     self.global_ids = set()
     self.parent = WeakrefOrNone(parent)
     self.instance_type = None
@@ -118,14 +119,12 @@ class Scope(object):
 
       # Set the class type as the only base of the instance type
       del self.instance_type.pb.base_type[:]
-      ref = self.instance_type.pb.base_type.add().reference.add()
-      ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
-      ref.name = self.FullName()
+      typedes.SetAbsoluteType(self.FullName(),
+                              self.instance_type.pb.base_type.add())
 
       # Calling the class type should give you the instance type
-      ref = self.pb.call_type.reference.add()
-      ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
-      ref.name = self.instance_type.FullName()
+      typedes.SetAbsoluteType(self.instance_type.FullName(),
+                              self.pb.call_type)
 
     if is_instance:
       self.node = None
@@ -160,6 +159,15 @@ class Scope(object):
     Adds a new variable to this scope.  var_kind is one of the protobuf Variable
     types.  Returns the Variable protobuf.
     """
+
+    try:
+      existing_member = self.members[name]
+    except KeyError:
+      pass
+    else:
+      if isinstance(existing_member, codemodel_pb2.Variable):
+        return existing_member
+      return None
 
     ret = self.pb.child_variable.add()
     ctx.SetPos(node, ret.declaration_pos)
@@ -235,14 +243,22 @@ class Scope(object):
     """
 
     if isinstance(node, ast.Import):
-      for name in [x.name for x in node.names]:
-        var = self.AddVariable(ctx, node, name, codemodel_pb2.Variable.MODULE_REF)
-        var.possible_type_id.append(name)
+      for name in node.names:
+        asname = name.asname
+        if not asname:
+          asname = name.name
+
+        var = self.AddVariable(ctx, node, asname, codemodel_pb2.Variable.MODULE_REF)
+        typedes.SetAbsoluteType(name.name, var.type)
 
     elif isinstance(node, ast.ImportFrom):
-      for name in [x.name for x in node.names]:
-        var = self.AddVariable(ctx, node, name, codemodel_pb2.Variable.MODULE_REF)
-        var.possible_type_id.append("%s.%s" % (node.module, name))
+      for name in node.names:
+        asname = name.asname
+        if not asname:
+          asname = name.name
+
+        var = self.AddVariable(ctx, node, asname, codemodel_pb2.Variable.MODULE_REF)
+        typedes.SetAbsoluteType("%s.%s" % (node.module, name.name), var.type)
 
     elif isinstance(node, ast.FunctionDef):
       func = self.AddScope(ctx, node)
@@ -254,9 +270,7 @@ class Scope(object):
         if index == 0 and self.pb.kind == codemodel_pb2.Scope.CLASS:
           # TODO: handle staticmethod and classmethod decorators
           # TODO: fully qualified type ID
-          ref = arg.type.reference.add()
-          ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
-          ref.name = self.instance_type.FullName()
+          typedes.SetAbsoluteType(self.instance_type.FullName(), arg.type)
 
     elif isinstance(node, ast.ClassDef):
       self.AddScope(ctx, node)
@@ -286,7 +300,7 @@ class Scope(object):
 
     elif isinstance(node, ast.With):
       if node.optional_vars is not None:
-        self.HandleVariableAssignment(ctx, node.optional_vars, node.content_expr)
+        self.HandleVariableAssignment(ctx, node.optional_vars, node.context_expr)
 
       self.HandleChildNodes(ctx, node.body)
 
@@ -328,6 +342,7 @@ class Scope(object):
                                        codemodel_pb2.Variable.SCOPE_VARIABLE)
 
     if var is not None:
+      var.ClearField("type")
       try:
         typedes.BuildTypeDescriptor(value, var.type)
       except typedes.TypeDescriptorError:
@@ -336,10 +351,7 @@ class Scope(object):
       # Resolve the value type now if we can
       (_, _, value_type_id) = typedes.ResolveType(ctx, var.type, self, self.Module())
       if value_type_id is not None:
-        del var.type.reference[:]
-        ref = var.type.reference.add()
-        ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
-        ref.name = value_type_id
+        typedes.SetAbsoluteType(value_type_id, var.type)
 
   def LookupName(self, name):
     """
@@ -347,12 +359,4 @@ class Scope(object):
     Doesn't look in parent or base scopes.
     """
 
-    for child_name, child in self.members.items():
-      if child_name == name:
-        return child
-
-    for child in self.pb.child_variable:
-      if child.name == name:
-        return child
-
-    return None
+    return self.members.get(name, None)
