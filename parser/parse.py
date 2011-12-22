@@ -4,10 +4,12 @@ Converts an AST to a CodeModel protobuf.
 
 import ast
 import logging
-import sys
 import weakref
 
 import codemodel_pb2
+import typedes
+
+LOGGER = logging.getLogger("parse")
 
 
 def WeakrefOrNone(obj):
@@ -25,9 +27,12 @@ class ParseContext(object):
   Information about what file or section of a file is currently being parsed.
   """
 
-  def __init__(self, filename, line_offset=0):
+  def __init__(self, filename, module_name, line_offset=0):
     self.filename = filename
+    self.module_name = module_name
     self.line_offset = line_offset
+
+    self.types = {}
 
   def SetPos(self, node, pos_out):
     """
@@ -63,10 +68,11 @@ class Scope(object):
     ast.Return,
   )
 
-  def __init__(self, ctx, node, parent=None, pb=None):
+  def __init__(self, ctx, node, parent=None, pb=None, is_instance=False):
     self.members = {}
     self.global_ids = set()
     self.parent = WeakrefOrNone(parent)
+    self.instance_type = None
 
     self.node = node
 
@@ -82,30 +88,83 @@ class Scope(object):
     # Set the Scope position
     ctx.SetPos(node, self.pb.declaration_pos)
 
-    # Set the Scope type
+    # Set the Scope kind
     if isinstance(node, ast.Module):
-      self.pb.type = codemodel_pb2.Scope.MODULE
+      self.pb.kind = codemodel_pb2.Scope.MODULE
+
     elif isinstance(node, ast.ClassDef):
-      self.pb.type = codemodel_pb2.Scope.CLASS
+      self.pb.kind = codemodel_pb2.Scope.CLASS
+
+      # Get the type descriptors of any base classes.
+      for base in node.bases:
+        typedes.BuildTypeDescriptor(base, self.pb.base_type.add())
+
     elif isinstance(node, ast.FunctionDef):
-      self.pb.type = codemodel_pb2.Scope.FUNCTION
+      self.pb.kind = codemodel_pb2.Scope.FUNCTION
+
     else:
       raise ValueError("Unhandled Scope node type %s" % str(node))
 
     # Set the scope name
-    if hasattr(node, "name"):
+    if isinstance(node, ast.Module):
+      self.pb.name = ctx.module_name
+    else:
       self.pb.name = node.name
 
-  def AddVariable(self, ctx, node, name, var_type):
+    # Classes get a special instance scope as well
+    if not is_instance and isinstance(node, ast.ClassDef):
+      # Create the instance type
+      self.instance_type = Scope(ctx, node, parent, is_instance=True)
+
+      # Set the class type as the only base of the instance type
+      del self.instance_type.pb.base_type[:]
+      ref = self.instance_type.pb.base_type.add().reference.add()
+      ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
+      ref.name = self.FullName()
+
+      # Calling the class type should give you the instance type
+      ref = self.pb.call_type.reference.add()
+      ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
+      ref.name = self.instance_type.FullName()
+
+    if is_instance:
+      self.node = None
+      self.pb.name += "<instance>"
+
+    # Register this type with the context
+    ctx.types[self.FullName()] = weakref.ref(self)
+
+  def FullName(self):
     """
-    Adds a new variable to this scope.  var_type is one of the protobuf Variable
+    Returns the full dotted type name of this Scope.
+    """
+
+    if not self.parent:
+      return self.pb.name
+    return self.parent().FullName() + "." + self.pb.name
+
+  def __str__(self):
+    return "<%s>" % self.FullName()
+
+  def Module(self):
+    """
+    Returns the highest ancestor of this Scope.
+    """
+
+    if not self.parent:
+      return self
+    return self.parent().Module()
+
+  def AddVariable(self, ctx, node, name, var_kind):
+    """
+    Adds a new variable to this scope.  var_kind is one of the protobuf Variable
     types.  Returns the Variable protobuf.
     """
 
     ret = self.pb.child_variable.add()
     ctx.SetPos(node, ret.declaration_pos)
     ret.name = name
-    ret.type = var_type
+    ret.kind = var_kind
 
     self.members[name] = ret
     return ret
@@ -192,10 +251,12 @@ class Scope(object):
       for index, arg_name in enumerate(self._GetArgNames(node.args)):
         arg = func.AddVariable(ctx, node, arg_name.id, codemodel_pb2.Variable.FUNCTION_ARGUMENT)
 
-        if index == 0 and self.pb.type == codemodel_pb2.Scope.CLASS:
+        if index == 0 and self.pb.kind == codemodel_pb2.Scope.CLASS:
           # TODO: handle staticmethod and classmethod decorators
           # TODO: fully qualified type ID
-          arg.possible_type_id.append(self.pb.name)
+          ref = arg.type.reference.add()
+          ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
+          ref.name = self.instance_type.FullName()
 
     elif isinstance(node, ast.ClassDef):
       self.AddScope(ctx, node)
@@ -221,12 +282,12 @@ class Scope(object):
 
     elif isinstance(node, ast.Assign):
       for target in node.targets:
-        self.HandleVariableAssignment(ctx, target)
+        self.HandleVariableAssignment(ctx, target, node.value)
 
     elif isinstance(node, ast.With):
       if node.optional_vars is not None:
-        self.HandleVariableAssignment(ctx, node.optional_vars)
-      
+        self.HandleVariableAssignment(ctx, node.optional_vars, node.content_expr)
+
       self.HandleChildNodes(ctx, node.body)
 
     elif isinstance(node, self.IGNORED_NODES):
@@ -235,56 +296,63 @@ class Scope(object):
     else:
       logging.warning("Unhandled %s", node.__class__.__name__)
 
-  def HandleVariableAssignment(self, ctx, target):
+  def HandleVariableAssignment(self, ctx, target, value):
     """
     Adds a scope variable to this scope for "target", which can be a name or an
-    attribute access.
+    attribute access.  The type is inferred from value, which is an Expr.
     """
-    
+
+    var = None
+
     if isinstance(target, ast.Name):
-      self.AddVariable(ctx, target, target.id, codemodel_pb2.Variable.SCOPE_VARIABLE)
-    
+      var = self.AddVariable(ctx, target, target.id, codemodel_pb2.Variable.SCOPE_VARIABLE)
+
     elif isinstance(target, ast.Attribute):
-      if isinstance(target.value, ast.Name):
-        # Only support one level deep attribute assignments (like self.foo)
-        # for now.  In the future we should resolve whole chains like
-        # self.foo.bar.baz.
-        parent = self.ResolveIdentifier(target.value.id)
-        if isinstance(parent, Scope):
-          parent.AddVariable(ctx, target, target.attr, codemodel_pb2.Variable.SCOPE_VARIABLE)
+      # We have <parent>.attribute.  Try to find a scope for <parent> and
+      # create an attribute inside it.
 
-  def ResolveIdentifier(self, name):
+      # Try to parse a type descriptor out of <parent>
+      parent_type = codemodel_pb2.Type()
+      try:
+        typedes.BuildTypeDescriptor(target.value, parent_type)
+      except typedes.TypeDescriptorError:
+        # Too complicated - never mind
+        return
+
+      # Resolve that to a type
+      (parent_scope, _, _) = typedes.ResolveType(ctx, parent_type, self, self.Module())
+
+      if parent_scope is not None:
+        # Create the variable in that scope
+        var = parent_scope.AddVariable(ctx, target, target.attr,
+                                       codemodel_pb2.Variable.SCOPE_VARIABLE)
+
+    if var is not None:
+      try:
+        typedes.BuildTypeDescriptor(value, var.type)
+      except typedes.TypeDescriptorError:
+        return
+
+      # Resolve the value type now if we can
+      (_, _, value_type_id) = typedes.ResolveType(ctx, var.type, self, self.Module())
+      if value_type_id is not None:
+        del var.type.reference[:]
+        ref = var.type.reference.add()
+        ref.kind = codemodel_pb2.Type.Reference.ABSOLUTE_TYPE_ID
+        ref.name = value_type_id
+
+  def LookupName(self, name):
     """
-    Tries to find a Thing subclass that is in this scope or a parent scope.
-    Returns None if nothing was found.
-    This is supposed to have the same behaviour as Python's variable lookup
-    if you were to use "name" in this scope.
+    Looks for a child with the (non-dotted) name in this immediate scope.
+    Doesn't look in parent or base scopes.
     """
 
-    if name in self.members:
-      return self.members[name]
+    for child_name, child in self.members.items():
+      if child_name == name:
+        return child
 
-    if self.parent is not None:
-      return self.parent().ResolveIdentifier(name)
+    for child in self.pb.child_variable:
+      if child.name == name:
+        return child
 
     return None
-
-
-def Main():
-  """
-  Parses the python source file given on the commandline and prints the
-  protobuf.
-  """
-
-  filename = sys.argv[1]
-  source = open(filename).read()
-
-  root = ast.parse(source)
-
-  ctx = ParseContext(filename)
-  scope = Scope(ctx, root)
-  scope.Populate(ctx)
-
-
-if __name__ == "__main__":
-  Main()

@@ -8,6 +8,8 @@ check_python(
   DEPENDS ${PROTOBUF_SOURCE}
   SOURCE main.py
          parse.py
+         typedes.py
+         worker.py
 )
 
 add_custom_target(parser ALL

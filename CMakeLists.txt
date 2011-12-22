@@ -9,7 +9,7 @@ include(cmake/ParseArguments.cmake)
 include(cmake/Protobuf.cmake)
 include(cmake/Pylint.cmake)
 
-set(WORKER_SOURCE_PATH ${CMAKE_BINARY_DIR}/parser/main.py)
+set(WORKER_SOURCE_PATH ${CMAKE_BINARY_DIR}/parser/worker.py)
 
 add_subdirectory(protoc-gen-cpp_qt)
 add_subdirectory(parser)
