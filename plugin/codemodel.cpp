@@ -1,5 +1,6 @@
-#include "closure.h"
 #include "codemodel.h"
+
+#include "closure.h"
 #include "codemodel.pb.h"
 #include "messagehandler.h"
 #include "workerpool.h"
@@ -15,6 +16,19 @@
 using namespace pyqtc;
 
 const char* CodeModel::kUnknownModuleName = "<unknown>";
+
+
+uint qHash(const RecursionGuardEntry& entry) {
+  return qHash(&entry.type_) ^
+         qHash(entry.locals_) ^
+         qHash(entry.globals_);
+}
+
+bool RecursionGuardEntry::operator ==(const RecursionGuardEntry& other) const {
+  return type_ == other.type_ &&
+         locals_ == other.locals_ &&
+         globals_ == other.globals_;
+}
 
 
 CodeModel::CodeModel(WorkerPool* worker_pool, QObject* parent)
@@ -70,10 +84,12 @@ void CodeModel::WalkPythonPath(const QString& root_path, const QString& path) {
   
   while (py_file_it.hasNext()) {
     const QString filename = py_file_it.next();
-    WorkerReply* reply = worker_pool_->ParseFile(filename);
+    const QString module_name = DottedModuleName(filename, root_path);
+
+    WorkerReply* reply = worker_pool_->ParseFile(filename, module_name);
     NewClosure(reply, SIGNAL(Finished()),
                this, SLOT(ParseFileFinished(WorkerReply*,QString,QString,ProjectExplorer::Project*)),
-               reply, filename, root_path, NULL);
+               reply, filename, module_name, NULL);
   }
   
   // Find subdirectories in this directory
@@ -114,11 +130,13 @@ void CodeModel::UpdateProject(ProjectExplorer::Project* project) {
 
     if (files_.contains(filename))
       continue;
+    
+    const QString module_name = DottedModuleName(filename);
 
-    WorkerReply* reply = worker_pool_->ParseFile(filename);
+    WorkerReply* reply = worker_pool_->ParseFile(filename, module_name);
     NewClosure(reply, SIGNAL(Finished()),
                this, SLOT(ParseFileFinished(WorkerReply*,QString,QString,ProjectExplorer::Project*)),
-               reply, filename, QString(), project);
+               reply, filename, module_name, project);
   }
 
   // Remove files that are no longer in the project
@@ -132,17 +150,13 @@ void CodeModel::UpdateProject(ProjectExplorer::Project* project) {
 }
 
 void CodeModel::ParseFileFinished(WorkerReply* reply, const QString& filename,
-                                  const QString& path_directory,
+                                  const QString& module_name,
                                   ProjectExplorer::Project* project) {
   reply->deleteLater();
 
   if (files_.contains(filename)) {
     delete files_[filename];
   }
-
-  const QString module_name = path_directory.isEmpty() ? 
-        DottedModuleName(filename) :
-        DottedModuleName(filename, path_directory);
   
   AddFile(new File(filename, module_name, project,
                    reply->message().parse_file_response().module()));
@@ -157,12 +171,12 @@ void CodeModel::InitScopeRecursive(Scope* scope, const QString& dotted_name) {
   // Icon type
   CPlusPlus::Icons::IconType icon_type = CPlusPlus::Icons::UnknownIconType;
 
-  switch (scope->type()) {
-  case pb::Scope_Type_CLASS:
+  switch (scope->kind()) {
+  case pb::Scope_Kind_CLASS:
     icon_type = CPlusPlus::Icons::ClassIconType;
     break;
 
-  case pb::Scope_Type_FUNCTION:
+  case pb::Scope_Kind_FUNCTION:
     if (scope->name().startsWith("_")) {
       icon_type = CPlusPlus::Icons::FuncPrivateIconType;
     } else {
@@ -170,7 +184,7 @@ void CodeModel::InitScopeRecursive(Scope* scope, const QString& dotted_name) {
     }
     break;
 
-  case pb::Scope_Type_MODULE:
+  case pb::Scope_Kind_MODULE:
     icon_type = CPlusPlus::Icons::NamespaceIconType;
     break;
   }
@@ -178,7 +192,7 @@ void CodeModel::InitScopeRecursive(Scope* scope, const QString& dotted_name) {
   scope->icon_ = icons_.iconForType(icon_type);
 
   // Dotted name
-  if (scope->type() == pb::Scope_Type_MODULE) {
+  if (scope->kind() == pb::Scope_Kind_MODULE) {
     scope->full_dotted_name_ = dotted_name;
   } else {
     scope->full_dotted_name_ = dotted_name + "." + scope->name();
@@ -352,4 +366,138 @@ QIcon CodeModel::IconForVariable(const QString& variable_name) const {
     return icons_.iconForType(CPlusPlus::Icons::VarPrivateIconType);
   }
   return icons_.iconForType(CPlusPlus::Icons::VarPublicIconType);
+}
+
+QString CodeModel::ResolveType(const pb::Type& type,
+                               const Scope* locals, const Scope* globals,
+                               const Scope** locals_out, const Scope** globals_out,
+                               RecursionGuard* recursion_guard) const {
+  *locals_out = NULL;
+  *globals_out = NULL;
+  QString type_id;
+  
+  if (type.reference_size() == 0)
+    return type_id;
+  
+  RecursionGuard local_recursion_guard;
+  if (recursion_guard == NULL) {
+    recursion_guard = &local_recursion_guard;
+  }
+  
+  RecursionGuardEntry entry;
+  entry.type_ = &type;
+  entry.locals_ = locals;
+  entry.globals_ = globals;
+  
+  if (recursion_guard->contains(entry)) {
+    return type_id;
+  }
+  recursion_guard->insert(entry);
+  
+  for (int i=0 ; i<type.reference_size() ; ++i) {
+    const Scope* next_locals = NULL;
+    const Scope* next_globals = NULL;
+    
+    type_id = ResolveTypeRef(type.reference(i),
+                             locals, globals,
+                             &next_locals, &next_globals,
+                             recursion_guard);
+    
+    locals = next_locals;
+    globals = next_globals;
+  }
+  
+  *locals_out = locals;
+  *globals_out = globals;
+  return type_id;
+}
+
+QString CodeModel::ResolveTypeRef(const pb::Type_Reference& ref,
+                                  const Scope* locals, const Scope* globals,
+                                  const Scope** locals_out, const Scope** globals_out,
+                                  RecursionGuard* recursion_guard) const {
+  *locals_out = NULL;
+  *globals_out = NULL;
+  
+  QString ret;
+  const pb::Type* ret_type = NULL;
+  
+  switch (ref.kind()) {
+  case pb::Type_Reference_Kind_ABSOLUTE_TYPE_ID:
+    ret = ref.name();
+    break;
+    
+  case pb::Type_Reference_Kind_SCOPE_LOOKUP:
+  case pb::Type_Reference_Kind_SCOPE_CALL:
+    // Look for this type in all the scopes we can see.
+    foreach (const Scope* scope, LookupScopes(locals, globals, recursion_guard)) {
+      const Scope* child_scope = scope->GetChildScope(ref.name());
+      if (child_scope) {
+        if (ref.kind() == pb::Type_Reference_Kind_SCOPE_LOOKUP) {
+          ret = child_scope->full_dotted_name();
+          *locals_out = child_scope;
+          *globals_out = child_scope->module();
+        } else if (ref.kind() == pb::Type_Reference_Kind_SCOPE_CALL) {
+          ret_type = &child_scope->pb().call_type();
+        }
+        break;
+      }
+      
+      const pb::Variable* child_variable = scope->GetChildVariable(ref.name());
+      if (child_variable) {
+        ret_type = &child_variable->type();
+        break;
+      }
+    }
+    break;
+  }
+  
+  if (!ret.isEmpty() && *locals_out == NULL && *globals_out == NULL) {
+    // We know the name of the type but we need to find its scope.
+    QMultiMap<QString, Scope*>::const_iterator it = types_.find(ret);
+    if (it != types_.end()) {
+      *locals_out = it.value();
+      *globals_out = it.value()->module();
+    }
+  }
+  
+  if (ret_type && *locals_out == NULL && *globals_out == NULL) {
+    // We know the type descriptor but we need to resolve it to a type.
+    ret = ResolveType(*ret_type, locals, globals,
+                      locals_out, globals_out, recursion_guard);
+  }
+  
+  return ret;
+}
+
+QList<const Scope*> CodeModel::LookupScopes(const Scope* locals, const Scope* globals,
+                                            RecursionGuard* recursion_guard) const {
+  // This is probably slow and ought to be cached (or somehow made into a
+  // generator like the Python implementation).
+  QList<const Scope*> ret;
+  
+  if (locals) {
+    ret << locals;
+    
+    for (int i=0 ; i<locals->pb().base_type_size() ; ++i) {
+      const pb::Type& base = locals->pb().base_type(i);
+      const Scope* new_locals = NULL;
+      const Scope* new_globals = NULL;
+      
+      // Find this base
+      ResolveType(base,
+                  NULL, globals,
+                  &new_locals, &new_globals,
+                  recursion_guard);
+      
+      // Add this base and all its bases
+      ret.append(LookupScopes(new_locals, new_globals, recursion_guard));
+    }
+  }
+  
+  if (globals) {
+    ret << globals;
+  }
+  
+  return ret;
 }

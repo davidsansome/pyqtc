@@ -55,54 +55,35 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
   }
 
   // Get the token under the cursor
-  MiniParser parser;
+  pb::Type token_type;
+  MiniParser parser(&token_type);
   parser.Parse(interface);
-
-  if (parser.parts().isEmpty())
-    return NULL;
 
   // With the line number and logical line indentation, we can guess which
   // local scope we're in.
   const Scope* locals = globals->FindLocalScope(line, parser.logical_line_indent());
-
-  // Resolve all the dotted parts of the token under the cursor.
-  QList<const Scope*> possible_scopes;
-  possible_scopes << locals << globals;
-
-  for (int i=0 ; i<parser.parts().count() - 1 ; ++i) {
-    const QString name = parser.parts()[i].name_;
-
-    QList<const Scope*> new_possible_scopes;
-
-    foreach (const Scope* scope, possible_scopes) {
-      const Scope* target_scope = scope->GetChildScope(name);
-      if (target_scope) {
-        if (target_scope->type() != pb::Scope_Type_FUNCTION) {
-          new_possible_scopes << target_scope;
-        }
-        continue;
-      }
-
-      const pb::Variable* target_variable = scope->GetChildVariable(name);
-      if (target_variable) {
-        foreach (const QString& type_name, target_variable->possible_type_id()) {
-          const Scope* type_scope = model_->ScopeByTypeName(type_name, scope->module());
-          if (type_scope) {
-            new_possible_scopes << type_scope;
-          }
-        }
-      }
-    }
-
-    possible_scopes = new_possible_scopes;
+  qDebug() << "Local scope at line" << line << "indent" << parser.logical_line_indent()
+           << "is" << locals->full_dotted_name();
+  
+  if (token_type.reference_size() != 0) {
+    const Scope* new_locals = NULL;
+    const Scope* new_globals = NULL;
+    
+    QString type_id = model_->ResolveType(token_type, locals, globals,
+                                          &new_locals, &new_globals);
+    
+    locals = new_locals;
+    globals = new_globals;
+    
+    qDebug() << type_id;
   }
 
-  const QString match_text = parser.parts().last().name_;
+  const QString match_text = parser.last_section();
 
   QList<TextEditor::BasicProposalItem*> items;
 
   // Add any children of those scopes to the completion model.
-  foreach (const Scope* scope, possible_scopes) {
+  foreach (const Scope* scope, model_->LookupScopes(locals, globals)) {
     foreach (const Scope* child_scope, scope->child_scopes()) {
       if (!child_scope->name().startsWith(match_text, Qt::CaseInsensitive)) {
         continue;

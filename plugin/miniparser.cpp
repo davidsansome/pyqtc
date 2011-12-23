@@ -1,3 +1,4 @@
+#include "codemodel.pb.h"
 #include "miniparser.h"
 
 #include <texteditor/codeassist/iassistinterface.h>
@@ -8,8 +9,9 @@
 
 using namespace pyqtc;
 
-MiniParser::MiniParser()
-  : logical_line_indent_(0)
+MiniParser::MiniParser(pb::Type* type)
+  : type_(type),
+    logical_line_indent_(0)
 {
 }
 
@@ -28,7 +30,10 @@ void MiniParser::Parse(const TextEditor::IAssistInterface* iface) {
   // character from a different identifier, stop parsing.
   int whitespace_amount = 0;
 
-  Part part;
+  QList<pb::Type_Reference> refs;
+  
+  pb::Type_Reference ref;
+  ref.set_kind(pb::Type_Reference_Kind_SCOPE_LOOKUP);
 
   for (int position = iface->position() - 1 ; position >= 0 ; --position) {
     const QChar c = iface->characterAt(position);
@@ -41,7 +46,7 @@ void MiniParser::Parse(const TextEditor::IAssistInterface* iface) {
       continue;
     } else if (c == ')') {
       paren_depth ++;
-      part.type_ = Part::Type_FunctionCall;
+      ref.set_kind(pb::Type_Reference_Kind_SCOPE_CALL);
       continue;
     }
 
@@ -54,19 +59,21 @@ void MiniParser::Parse(const TextEditor::IAssistInterface* iface) {
         taking_identifier = false;
         whitespace_amount = 0;
       } else if (taking_identifier) {
-        part.name_.prepend(c);
+        ref.mutable_name()->prepend(c);
       }
     } else if (c == ' ' || c == '\t') {
       whitespace_amount ++;
-      if (taking_identifier && !part.name_.isEmpty()) {
-        parts_.prepend(part);
-        part = Part();
+      if (taking_identifier && !ref.name().isEmpty()) {
+        refs.prepend(ref);
+        ref.Clear();
+        ref.set_kind(pb::Type_Reference_Kind_SCOPE_LOOKUP);
       }
     } else if (c == '.') {
       whitespace_amount = 0;
       if (taking_identifier) {
-        parts_.prepend(part);
-        part = Part();
+        refs.prepend(ref);
+        ref.Clear();
+        ref.set_kind(pb::Type_Reference_Kind_SCOPE_LOOKUP);
       }
     } else if (c.category() == QChar::Separator_Line ||
                c.category() == QChar::Separator_Paragraph) {
@@ -81,23 +88,19 @@ void MiniParser::Parse(const TextEditor::IAssistInterface* iface) {
     }
   }
 
-  if (taking_identifier && !part.name_.isEmpty()) {
-    parts_.prepend(part);
+  if (taking_identifier && !ref.name().isEmpty()) {
+    refs.prepend(ref);
+  }
+
+  // The last section is special - it's what's being completed.
+  if (!refs.isEmpty()) {
+    last_section_ = refs.takeLast().name();
+  }
+
+  // Add the rest of the references to the pb.
+  foreach (const pb::Type_Reference& ref, refs) {
+    type_->add_reference()->CopyFrom(ref);
   }
 
   logical_line_indent_ = whitespace_amount;
-}
-
-QString MiniParser::DottedName() const {
-  QStringList ret;
-
-  foreach (const Part& part, parts_) {
-    QString name = part.name_;
-    if (part.type_ == Part::Type_FunctionCall) {
-      name += "()";
-    }
-    ret << name;
-  }
-
-  return ret.join(".");
 }

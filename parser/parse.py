@@ -258,7 +258,8 @@ class Scope(object):
           asname = name.name
 
         var = self.AddVariable(ctx, node, asname, codemodel_pb2.Variable.MODULE_REF)
-        typedes.SetAbsoluteType("%s.%s" % (node.module, name.name), var.type)
+        if var is not None:
+          typedes.SetAbsoluteType("%s.%s" % (node.module, name.name), var.type)
 
     elif isinstance(node, ast.FunctionDef):
       func = self.AddScope(ctx, node)

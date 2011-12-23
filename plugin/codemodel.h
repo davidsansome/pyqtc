@@ -1,6 +1,13 @@
 #ifndef PYQTC_CODEMODEL_H
 #define PYQTC_CODEMODEL_H
 
+#include <QtGlobal>
+
+namespace pyqtc {
+  class RecursionGuardEntry;
+}
+uint qHash(const pyqtc::RecursionGuardEntry& entry);
+
 #include <QIcon>
 #include <QMultiMap>
 #include <QObject>
@@ -39,7 +46,7 @@ public:
   const QString& full_dotted_name() const { return full_dotted_name_; }
 
   // What kind of type this is - module, class or function.
-  pb::Scope_Type type() const { return pb_->type(); }
+  pb::Scope_Kind kind() const { return pb_->kind(); }
 
   // The type that contains this type within this module.  Modules do not have
   // parents.
@@ -51,6 +58,8 @@ public:
 
   // An icon for this type.
   QIcon icon() const { return icon_; }
+  
+  const pb::Scope& pb() const { return *pb_; }
 
   const QList<const Scope*>& child_scopes() const { return child_scopes_; }
   const QList<const pb::Variable*>& child_variables() const { return child_variables_; }
@@ -101,6 +110,16 @@ private:
 };
 
 
+struct RecursionGuardEntry {
+  const pb::Type* type_;
+  const Scope* globals_;
+  const Scope* locals_;
+  
+  bool operator ==(const RecursionGuardEntry& other) const;
+};
+typedef QSet<RecursionGuardEntry> RecursionGuard;
+
+
 class CodeModel : public QObject {
   Q_OBJECT
   friend class File;
@@ -120,6 +139,20 @@ public:
                                const Scope* relative_scope = NULL);
 
   QIcon IconForVariable(const QString& variable_name) const;
+  
+  QString ResolveType(const pb::Type& type,
+                      const Scope* locals, const Scope* globals,
+                      const Scope** locals_out, const Scope** globals_out,
+                      RecursionGuard* recursion_guard = NULL) const;
+  QString ResolveTypeRef(const pb::Type_Reference& ref,
+                         const Scope* locals, const Scope* globals,
+                         const Scope** locals_out, const Scope** globals_out,
+                         RecursionGuard* recursion_guard = NULL) const;
+  
+  // Gets the list of scopes in which to look for variables.  Includes base
+  // classes of the locals scope.
+  QList<const Scope*> LookupScopes(const Scope* locals, const Scope* globals,
+                                   RecursionGuard* recursion_guard = NULL) const;
 
 private slots:
   void ProjectAdded(ProjectExplorer::Project* project);
@@ -127,7 +160,7 @@ private slots:
   void ProjectFilesChanged(ProjectExplorer::Project* project);
 
   void ParseFileFinished(WorkerReply* reply, const QString& filename,
-                         const QString& path_directory,
+                         const QString& module_name,
                          ProjectExplorer::Project* project);
   
   void GetPythonPathFinished(WorkerReply* reply);

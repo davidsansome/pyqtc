@@ -29,7 +29,7 @@ def ParseFile(request, response):
     response.syntax_error.position.column   = ex.offset or 0
     response.syntax_error.text              = ex.text or str(ex)
   else:
-    ctx = parse.ParseContext(request.filename)
+    ctx = parse.ParseContext(request.filename, request.module_name)
     scope = parse.Scope(ctx, root, pb=response.module)
     scope.Populate(ctx)
 

@@ -62,12 +62,12 @@ QList<FilterEntry> PythonFilter::matchesFor(QFutureInterface<FilterEntry>& futur
 void PythonFilter::WalkScope(const Scope* scope, const QString& query,
                              QList<Locator::FilterEntry>* entries) {
 
-  const bool matches_type =
-      scope->type() == pb::Scope_Type_FUNCTION && show_functions_ ||
-      scope->type() == pb::Scope_Type_CLASS && show_classes_ ||
-      scope->type() == pb::Scope_Type_MODULE && show_modules_;
+  const bool matches_kind =
+      scope->kind() == pb::Scope_Kind_FUNCTION && show_functions_ ||
+      scope->kind() == pb::Scope_Kind_CLASS && show_classes_ ||
+      scope->kind() == pb::Scope_Kind_MODULE && show_modules_;
 
-  if (matches_type && scope->name().contains(query, Qt::CaseInsensitive)) {
+  if (matches_kind && scope->name().contains(query, Qt::CaseInsensitive)) {
     FilterEntry entry(this, scope->name(),
                       QVariant::fromValue(scope->declaration_pos()));
     entry.extraInfo = scope->full_dotted_name();

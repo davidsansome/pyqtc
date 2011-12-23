@@ -125,9 +125,12 @@ void WorkerPool::SendMessage(pyqtc::pb::Message* message) {
   }
 }
 
-WorkerReply* WorkerPool::ParseFile(const QString& filename) {
+WorkerReply* WorkerPool::ParseFile(const QString& filename,
+                                   const QString& module_name) {
   pb::Message request;
-  request.mutable_parse_file_request()->set_filename(filename);
+  pb::ParseFileRequest* req = request.mutable_parse_file_request();
+  req->set_filename(filename);
+  req->set_module_name(module_name);
 
   return SendNewMessage(&request);
 }

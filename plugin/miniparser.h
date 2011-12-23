@@ -10,32 +10,22 @@ namespace TextEditor {
 
 namespace pyqtc {
 
+namespace pb {
+  class Type;
+}
+
 class MiniParser {
 public:
-  MiniParser();
+  MiniParser(pb::Type* type);
 
   void Parse(const TextEditor::IAssistInterface* iface);
 
-  struct Part {
-    Part() : type_(Type_Member) {}
-
-    enum Type {
-      Type_FunctionCall,
-      Type_Member
-    };
-
-    QString name_;
-    Type type_;
-  };
-  typedef QList<Part> PartList;
-
-  const PartList& parts() const { return parts_; }
+  const QString& last_section() const { return last_section_; }
   int logical_line_indent() const { return logical_line_indent_; }
 
-  QString DottedName() const;
-
 private:
-  PartList parts_;
+  pb::Type* type_;
+  QString last_section_;
   int logical_line_indent_;
 };
 

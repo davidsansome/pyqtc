@@ -25,7 +25,7 @@ public:
   WorkerPool(QObject* parent = 0);
   ~WorkerPool();
 
-  WorkerReply* ParseFile(const QString& filename);
+  WorkerReply* ParseFile(const QString& filename, const QString& module_name);
   WorkerReply* GetPythonPath();
 
 private slots:
