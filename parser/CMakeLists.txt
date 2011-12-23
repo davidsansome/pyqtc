@@ -12,7 +12,14 @@ check_python(
          worker.py
 )
 
+test_python(
+  OUTPUT PYTHON_TESTS
+  DEPENDS ${PYTHON}
+  TESTS ${CMAKE_SOURCE_DIR}/tests/test_parse.py
+)
+
 add_custom_target(parser ALL
   DEPENDS ${PYTHON}
+          ${PYTHON_TESTS}
           ${PROTOBUF_SOURCE}
 )

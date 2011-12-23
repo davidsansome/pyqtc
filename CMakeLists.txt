@@ -8,6 +8,7 @@ include(${QT_USE_FILE})
 include(cmake/ParseArguments.cmake)
 include(cmake/Protobuf.cmake)
 include(cmake/Pylint.cmake)
+include(cmake/TestPython.cmake)
 
 set(WORKER_SOURCE_PATH ${CMAKE_BINARY_DIR}/parser/worker.py)
 
