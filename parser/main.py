@@ -20,6 +20,8 @@ def Main():
 
   logging.basicConfig(level=logging.DEBUG)
 
+  scope = parse.ParseFile(sys.argv[1], "__main__")
+
   filename = sys.argv[1]
   source = open(filename).read()
 

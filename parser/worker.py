@@ -3,7 +3,6 @@ Reads uint32 length-encoded protobufs from stdin, handles requests and writes
 responses to stdout.
 """
 
-import ast
 import logging
 import socket
 import struct
@@ -18,20 +17,14 @@ def ParseFile(request, response):
   Handler for rpc_pb2.ParseFileRequest.
   """
 
-  with open(request.filename) as handle:
-    source = handle.read()
-
   try:
-    root = ast.parse(source, request.filename)
+    parse.ParseFile(request.filename, request.modulename,
+                    pb=response.module)
   except SyntaxError, ex:
     response.syntax_error.position.filename = ex.filename
     response.syntax_error.position.line     = ex.lineno or 0
     response.syntax_error.position.column   = ex.offset or 0
     response.syntax_error.text              = ex.text or str(ex)
-  else:
-    ctx = parse.ParseContext(request.filename, request.module_name)
-    scope = parse.Scope(ctx, root, pb=response.module)
-    scope.Populate(ctx)
 
 
 def GetPythonPath(_request, response):

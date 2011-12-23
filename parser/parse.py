@@ -362,3 +362,29 @@ class Scope(object):
     """
 
     return self.members.get(name, None)
+
+
+def ParseFile(filename, module_name, pb=None):
+  """
+  Parses a file with the given module name and returns the Scope object.
+  """
+
+  with open(filename) as handle:
+    source = handle.read()
+
+  return ParseSource(source, filename, module_name, pb=pb)
+
+
+def ParseSource(source, filename, module_name, pb=None):
+  """
+  Parses some Python source with the given module and filename (filename is
+  used for code locations only) and returns the Scope object.
+  """
+
+  root = ast.parse(source, filename)
+
+  ctx = ParseContext(filename, module_name)
+  scope = Scope(ctx, root, pb=pb)
+  scope.Populate(ctx)
+
+  return scope
