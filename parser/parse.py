@@ -87,7 +87,8 @@ class Scope(object):
       self.pb = parent.pb.child_scope.add()
 
     # Set the Scope position
-    ctx.SetPos(node, self.pb.declaration_pos)
+    if not is_instance:
+      ctx.SetPos(node, self.pb.declaration_pos)
 
     # Set the Scope kind
     if isinstance(node, ast.Module):

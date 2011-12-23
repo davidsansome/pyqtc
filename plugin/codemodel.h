@@ -36,6 +36,7 @@ public:
   Scope(const pb::Scope* pb, Scope* parent, File* module);
 
   // The position in the file that this type was declared.
+  bool has_declaration_pos() const { return pb_->has_declaration_pos(); }
   const pb::Position& declaration_pos() const { return pb_->declaration_pos(); }
 
   // The name of this type, without any dots.
@@ -152,6 +153,7 @@ public:
   // Gets the list of scopes in which to look for variables.  Includes base
   // classes of the locals scope.
   QList<const Scope*> LookupScopes(const Scope* locals, const Scope* globals,
+                                   bool include_base_globals,
                                    RecursionGuard* recursion_guard = NULL) const;
 
 private slots:

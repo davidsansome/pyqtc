@@ -67,7 +67,8 @@ void PythonFilter::WalkScope(const Scope* scope, const QString& query,
       scope->kind() == pb::Scope_Kind_CLASS && show_classes_ ||
       scope->kind() == pb::Scope_Kind_MODULE && show_modules_;
 
-  if (matches_kind && scope->name().contains(query, Qt::CaseInsensitive)) {
+  if (matches_kind && scope->name().contains(query, Qt::CaseInsensitive) &&
+      scope->has_declaration_pos()) {
     FilterEntry entry(this, scope->name(),
                       QVariant::fromValue(scope->declaration_pos()));
     entry.extraInfo = scope->full_dotted_name();

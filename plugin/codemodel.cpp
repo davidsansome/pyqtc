@@ -89,7 +89,7 @@ void CodeModel::WalkPythonPath(const QString& root_path, const QString& path) {
     WorkerReply* reply = worker_pool_->ParseFile(filename, module_name);
     NewClosure(reply, SIGNAL(Finished()),
                this, SLOT(ParseFileFinished(WorkerReply*,QString,QString,ProjectExplorer::Project*)),
-               reply, filename, module_name, NULL);
+               reply, filename, module_name, (ProjectExplorer::Project*)NULL);
   }
   
   // Find subdirectories in this directory
@@ -352,7 +352,8 @@ const pb::Variable* Scope::GetChildVariable(const QString& name) const {
 const Scope* Scope::FindLocalScope(int line_number, int indent_amount) const {
   for (int i=child_scopes_.count() - 1 ; i >= 0 ; --i) {
     const Scope* child = child_scopes_[i];
-    if (child->declaration_pos().line() < line_number &&
+    if (child->has_declaration_pos() &&
+        child->declaration_pos().line() < line_number &&
         child->declaration_pos().column() < indent_amount) {
       return child->FindLocalScope(line_number, indent_amount);
     }
@@ -471,6 +472,7 @@ QString CodeModel::ResolveTypeRef(const pb::Type_Reference& ref,
 }
 
 QList<const Scope*> CodeModel::LookupScopes(const Scope* locals, const Scope* globals,
+                                            bool include_base_globals,
                                             RecursionGuard* recursion_guard) const {
   // This is probably slow and ought to be cached (or somehow made into a
   // generator like the Python implementation).
@@ -489,9 +491,14 @@ QList<const Scope*> CodeModel::LookupScopes(const Scope* locals, const Scope* gl
                   NULL, globals,
                   &new_locals, &new_globals,
                   recursion_guard);
+
+      if (!include_base_globals) {
+        new_globals = NULL;
+      }
       
       // Add this base and all its bases
-      ret.append(LookupScopes(new_locals, new_globals, recursion_guard));
+      ret.append(LookupScopes(new_locals, new_globals, include_base_globals,
+                              recursion_guard));
     }
   }
   

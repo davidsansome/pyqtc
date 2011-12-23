@@ -73,9 +73,9 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
                                           &new_locals, &new_globals);
     
     locals = new_locals;
-    globals = new_globals;
+    globals = NULL;
     
-    qDebug() << type_id;
+    qDebug() << "Expression resolved to type" << type_id;
   }
 
   const QString match_text = parser.last_section();
@@ -83,9 +83,11 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
   QList<TextEditor::BasicProposalItem*> items;
 
   // Add any children of those scopes to the completion model.
-  foreach (const Scope* scope, model_->LookupScopes(locals, globals)) {
+  foreach (const Scope* scope, model_->LookupScopes(locals, globals, false)) {
+    qDebug() << "Adding scope" << scope->full_dotted_name() << "to completions";
     foreach (const Scope* child_scope, scope->child_scopes()) {
-      if (!child_scope->name().startsWith(match_text, Qt::CaseInsensitive)) {
+      if (!child_scope->name().startsWith(match_text, Qt::CaseInsensitive) ||
+          !child_scope->has_declaration_pos()) {
         continue;
       }
 
