@@ -1,10 +1,12 @@
 #ifndef PYQTC_COMPLETIONASSIST_H
 #define PYQTC_COMPLETIONASSIST_H
 
+#include <cplusplus/Icons.h>
 #include <texteditor/codeassist/completionassistprovider.h>
 #include <texteditor/codeassist/iassistprocessor.h>
 #include <texteditor/codeassist/igenericproposalmodel.h>
 
+#include "rpc.pb.h"
 #include "workerclient.h"
 #include "workerpool.h"
 
@@ -25,17 +27,24 @@ public:
 
 private:
   WorkerPool<WorkerClient>* worker_pool_;
+  CPlusPlus::Icons icons_;
 };
 
 
 class CompletionAssistProcessor : public TextEditor::IAssistProcessor {
 public:
-  CompletionAssistProcessor(WorkerPool<WorkerClient>* worker_pool);
+  CompletionAssistProcessor(WorkerPool<WorkerClient>* worker_pool,
+                            const CPlusPlus::Icons* icons);
 
   TextEditor::IAssistProposal* perform(const TextEditor::IAssistInterface* interface);
 
 private:
+  static CPlusPlus::Icons::IconType IconTypeForProposal(
+      const pb::CompletionResponse_Proposal& proposal);
+
+private:
   WorkerPool<WorkerClient>* worker_pool_;
+  const CPlusPlus::Icons* icons_;
 };
 
 } // namespace pyqtc

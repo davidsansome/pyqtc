@@ -33,13 +33,50 @@ bool CompletionAssistProvider::isActivationCharSequence(const QString& sequence)
 }
 
 TextEditor::IAssistProcessor* CompletionAssistProvider::createProcessor() const {
-  return new CompletionAssistProcessor(worker_pool_);
+  return new CompletionAssistProcessor(worker_pool_, &icons_);
 }
 
 CompletionAssistProcessor::CompletionAssistProcessor(
-    WorkerPool<WorkerClient>* worker_pool)
-  : worker_pool_(worker_pool)
+      WorkerPool<WorkerClient>* worker_pool,
+      const CPlusPlus::Icons* icons)
+  : worker_pool_(worker_pool),
+    icons_(icons)
 {
+}
+
+CPlusPlus::Icons::IconType CompletionAssistProcessor::IconTypeForProposal(
+      const pb::CompletionResponse_Proposal& proposal) {
+  const bool is_private = proposal.name().startsWith("_");
+
+  // Keywords are treated differently
+  switch (proposal.scope()) {
+  case pb::CompletionResponse_Proposal_Scope_KEYWORD:
+    return CPlusPlus::Icons::KeywordIconType;
+
+  default:
+    // Continue to look at the type
+    break;
+  }
+
+  switch (proposal.type()) {
+  case pb::CompletionResponse_Proposal_Type_INSTANCE:
+    return is_private ?
+          CPlusPlus::Icons::VarPrivateIconType :
+          CPlusPlus::Icons::VarPublicIconType;
+
+  case pb::CompletionResponse_Proposal_Type_CLASS:
+    return CPlusPlus::Icons::ClassIconType;
+
+  case pb::CompletionResponse_Proposal_Type_FUNCTION:
+    return is_private ?
+          CPlusPlus::Icons::FuncPrivateIconType :
+          CPlusPlus::Icons::FuncPublicIconType;
+
+  case pb::CompletionResponse_Proposal_Type_MODULE:
+    return CPlusPlus::Icons::NamespaceIconType;
+  }
+
+  return CPlusPlus::Icons::UnknownIconType;
 }
 
 TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
@@ -64,6 +101,7 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
   foreach (const pb::CompletionResponse_Proposal& proposal, response->proposal()) {
     TextEditor::BasicProposalItem* item = new TextEditor::BasicProposalItem;
     item->setText(proposal.name());
+    item->setIcon(icons_->iconForType(IconTypeForProposal(proposal)));
 
     items << item;
   }
