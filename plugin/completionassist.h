@@ -5,37 +5,37 @@
 #include <texteditor/codeassist/iassistprocessor.h>
 #include <texteditor/codeassist/igenericproposalmodel.h>
 
+#include "workerclient.h"
+#include "workerpool.h"
+
 namespace TextEditor {
   class IAssistInterface;
 }
 
-
 namespace pyqtc {
-
-class CodeModel;
 
 class CompletionAssistProvider : public TextEditor::CompletionAssistProvider {
 public:
-  CompletionAssistProvider(CodeModel* model);
+  CompletionAssistProvider(WorkerPool<WorkerClient>* worker_pool);
 
-  bool supportsEditor(const Core::Id& editorId) const;
+  bool supportsEditor(const QString& editorId) const;
   int activationCharSequenceLength() const;
   bool isActivationCharSequence(const QString& sequence) const;
   TextEditor::IAssistProcessor* createProcessor() const;
 
 private:
-  CodeModel* model_;
+  WorkerPool<WorkerClient>* worker_pool_;
 };
 
 
 class CompletionAssistProcessor : public TextEditor::IAssistProcessor {
 public:
-  CompletionAssistProcessor(CodeModel* model);
+  CompletionAssistProcessor(WorkerPool<WorkerClient>* worker_pool);
 
   TextEditor::IAssistProposal* perform(const TextEditor::IAssistInterface* interface);
 
 private:
-  CodeModel* model_;
+  WorkerPool<WorkerClient>* worker_pool_;
 };
 
 } // namespace pyqtc

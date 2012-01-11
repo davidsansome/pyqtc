@@ -1,124 +1,137 @@
+#!/usr/bin/env python
+
 """
-Reads uint32 length-encoded protobufs from stdin, handles requests and writes
-responses to stdout.
+Entry point for the pyqtc worker.
 """
 
 import logging
-import socket
-import struct
+import os
+import rope.base.project
+from rope.contrib import codeassist
 import sys
 
-import parse
+import messagehandler
 import rpc_pb2
 
 
-def ParseFile(request, response):
+class ProjectNotFoundError(Exception):
   """
-  Handler for rpc_pb2.ParseFileRequest.
+  An action was requested on a file that was not found in a project.
   """
 
-  try:
-    parse.ParseFile(request.filename, request.modulename,
-                    pb=response.module)
-  except SyntaxError, ex:
-    response.syntax_error.position.filename = ex.filename
-    response.syntax_error.position.line     = ex.lineno or 0
-    response.syntax_error.position.column   = ex.offset or 0
-    response.syntax_error.text              = ex.text or str(ex)
 
+class Handler(messagehandler.MessageHandler):
+  """
+  Handles rpc requests.
+  """
 
-def GetPythonPath(_request, response):
-  """
-  Handler for rpc_pb2.GetPythonPathRequest.
-  """
+  PROPOSAL_TYPES = {
+    "instance": rpc_pb2.CompletionResponse.Proposal.INSTANCE,
+    "class":    rpc_pb2.CompletionResponse.Proposal.CLASS,
+    "function": rpc_pb2.CompletionResponse.Proposal.FUNCTION,
+    "module":   rpc_pb2.CompletionResponse.Proposal.MODULE,
+  }
+
+  PROPOSAL_SCOPES = {
+    "local":             rpc_pb2.CompletionResponse.Proposal.LOCAL,
+    "global":            rpc_pb2.CompletionResponse.Proposal.GLOBAL,
+    "builtin":           rpc_pb2.CompletionResponse.Proposal.BUILTIN,
+    "attribute":         rpc_pb2.CompletionResponse.Proposal.ATTRIBUTE,
+    "imported":          rpc_pb2.CompletionResponse.Proposal.IMPORTED,
+    "keyword":           rpc_pb2.CompletionResponse.Proposal.KEYWORD,
+    "parameter_keyword": rpc_pb2.CompletionResponse.Proposal.PARAMETER_KEYWORD,
+  }
+
+  def __init__(self):
+    super(Handler, self).__init__(rpc_pb2.Message)
+
+    self.projects = {}
+
+  def CreateProjectRequest(self, request, _response):
+    """
+    Creates a new rope project and stores it away for later.
+    """
+
+    root = os.path.normpath(request.create_project_request.project_root)
+    project = rope.base.project.Project(root)
+
+    self.projects[root] = project
   
-  response.path_entry.extend(sys.path)
+  def DestroyProjectRequest(self, request, _response):
+    """
+    Cleans up a rope project when it is closed by the user in Qt Creator.
+    """
 
+    root = os.path.normpath(request.create_project_request.project_root)
+    project = self.projects[root]
 
-class ShortReadError(Exception):
-  """
-  An EOF was read from the input handle.
-  """
-
-  pass
-
-
-class UnknownRequestType(Exception):
-  """
-  The request protobuf did not contain any recognised request types.
-  """
+    project.close()
+    del self.projects[root]
   
-  pass
+  def _ProjectForFile(self, file_path):
+    """
+    Tries to find the project that contains the given file.
+    """
 
+    while file_path:
+      try:
+        return self.projects[file_path]
+      except KeyError:
+        pass
 
-def ReadMessage(handle):
-  """
-  Reads a uint32 length-encoded protobuf from the file handle and returns it.
-  """
+      file_path = os.path.dirname(file_path)
+    
+    raise ProjectNotFoundError
   
-  # Read the length
-  encoded_length = handle.read(4)
-  if len(encoded_length) != 4:
-    raise ShortReadError()
+  def CompletionRequest(self, request, response):
+    """
+    Finds completion proposals for the given location in the given source file.
+    """
 
-  # Decode the length
-  (length,) = struct.unpack(">I", encoded_length)
+    # Guess at the root directory for this project by walking up the path
+    project = self._ProjectForFile(request.completion_request.file_path)
 
-  # Read the protobuf
-  data = handle.read(length)
-  if len(data) != length:
-    raise ShortReadError()
+    # Get completions
+    proposals = codeassist.code_assist(project,
+      request.completion_request.source_text,
+      request.completion_request.cursor_position)
+    
+    # Get the starting offset
+    starting_offset = codeassist.starting_offset(
+      request.completion_request.source_text,
+      request.completion_request.cursor_position)
 
-  return rpc_pb2.Message.FromString(data)
+    # Construct the response protobuf
+    response.completion_response.insertion_position = starting_offset
+
+    for proposal in proposals:
+      proposal_pb = response.completion_response.proposal.add()
+      proposal_pb.name = proposal.name
+
+      docstring = codeassist.get_doc(project,
+        request.completion_request.source_text,
+        request.completion_request.cursor_position)
+
+      if proposal.type in self.PROPOSAL_TYPES:
+        proposal_pb.type = self.PROPOSAL_TYPES[proposal.type]
+
+      if proposal.scope in self.PROPOSAL_SCOPES:
+        proposal_pb.scope = self.PROPOSAL_SCOPES[proposal.scope]
+
+      if docstring is not None:
+        proposal_pb.docstring = docstring
 
 
-def WriteMessage(handle, message):
+def Main(args):
   """
-  uint32 length-encodes the given protobuf and writes it to the file handle.
+  Connects to the socket passed on the commandline and listens for requests.
   """
-
-  data = message.SerializeToString()
-  handle.write(struct.pack(">I", len(data)) + data)
-  handle.flush()
-
-
-def Main(socket_filename):
-  """
-  Connects to the given local socket and listens for incoming request protobufs.
-  Handles the requests and writes the responses back to the socket.
-  """
-
-  sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-  sock.connect(socket_filename)
-
-  input_handle = output_handle = sock.makefile()
 
   logging.basicConfig()
 
-  while True:
-    try:
-      request = ReadMessage(input_handle)
-    except ShortReadError:
-      break
-
-    response = rpc_pb2.Message()
-    response.id = request.id
-
-    try:
-      if request.HasField("parse_file_request"):
-        ParseFile(request.parse_file_request, response.parse_file_response)
-      elif request.HasField("get_python_path_request"):
-        GetPythonPath(request.get_python_path_request,
-                      response.get_python_path_response)
-      else:
-        raise UnknownRequestType()
-    except Exception, ex:
-      logging.exception("Error handling request %s", request)
-      response.error_response.message = \
-        "%s: %s" % (ex.__class__.__name__, str(ex))
-
-    WriteMessage(output_handle, response)
+  handler = Handler()
+  handler.ServeForever(args[0])
 
 
 if __name__ == "__main__":
-  Main(sys.argv[1])
+  Main(sys.argv[1:])

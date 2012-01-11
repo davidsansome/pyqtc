@@ -1,7 +1,7 @@
-#include "codemodel.h"
+#include "config.h"
 #include "completionassist.h"
 #include "plugin.h"
-#include "pythonfilter.h"
+#include "projects.h"
 #include "workerpool.h"
 
 #include <coreplugin/icore.h>
@@ -22,9 +22,12 @@
 using namespace pyqtc;
 
 Plugin::Plugin()
-  : worker_pool_(new WorkerPool(this)),
-    code_model_(NULL)
+  : worker_pool_(new WorkerPool<WorkerClient>(this))
 {
+  worker_pool_->SetExecutableName(config::kWorkerSourcePath);
+  worker_pool_->SetWorkerCount(1);
+  worker_pool_->SetLocalServerName("pyqtc");
+  worker_pool_->Start();
 }
 
 Plugin::~Plugin() {
@@ -34,14 +37,8 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
   Q_UNUSED(arguments)
   Q_UNUSED(errorString)
 
-  code_model_ = new CodeModel(worker_pool_);
-
-  addAutoReleasedObject(new PythonFilter(code_model_));
-  addAutoReleasedObject(new PythonCurrentDocumentFilter(code_model_));
-  addAutoReleasedObject(new PythonClassFilter(code_model_));
-  addAutoReleasedObject(new PythonFunctionFilter(code_model_));
-
-  addAutoReleasedObject(new CompletionAssistProvider(code_model_));
+  addAutoReleasedObject(new Projects(worker_pool_));
+  addAutoReleasedObject(new CompletionAssistProvider(worker_pool_));
 
   return true;
 }

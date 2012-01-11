@@ -15,9 +15,11 @@
    along with Clementine.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "workerpool.h"
+#ifndef WAITFORSIGNAL_H
+#define WAITFORSIGNAL_H
 
-_WorkerPoolBase::_WorkerPoolBase(QObject* parent)
-  : QObject(parent)
-{
-}
+class QObject;
+
+void WaitForSignal(QObject* sender, const char* signal);
+
+#endif // WAITFORSIGNAL_H

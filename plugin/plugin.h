@@ -1,12 +1,12 @@
 #ifndef PYQTC_PLUGIN_H
 #define PYQTC_PLUGIN_H
 
+#include "workerclient.h"
+#include "workerpool.h"
+
 #include <extensionsystem/iplugin.h>
 
 namespace pyqtc {
-
-class CodeModel;
-class WorkerPool;
 
 class Plugin : public ExtensionSystem::IPlugin {
   Q_OBJECT
@@ -20,8 +20,7 @@ public:
   ShutdownFlag aboutToShutdown();
 
 private:
-  WorkerPool* worker_pool_;
-  CodeModel* code_model_;
+  WorkerPool<WorkerClient>* worker_pool_;
 };
 
 } // namespace pyqtc

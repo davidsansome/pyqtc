@@ -1,41 +1,70 @@
 package pyqtc.pb;
 
-import "codemodel.proto";
-
 message Message {
   optional int32 id = 1;
 
   optional ErrorResponse error_response = 2;
 
-  optional ParseFileRequest parse_file_request = 3;
-  optional ParseFileResponse parse_file_response = 4;
+  optional CreateProjectRequest create_project_request = 3;
+  optional CreateProjectResponse create_project_response = 4;
 
-  optional GetPythonPathRequest get_python_path_request = 5;
-  optional GetPythonPathResponse get_python_path_response = 6;
-}
+  optional DestroyProjectRequest destroy_project_request = 5;
+  optional DestroyProjectResponse destroy_project_response = 6;
 
-message ParseFileRequest {
-  optional string filename = 1;
-  optional string module_name = 2;
-}
-
-message ParseFileResponse {
-  message SyntaxError {
-    optional Position position = 1;
-    optional string text = 2;
-  }
-
-  optional Scope module = 1;
-  optional SyntaxError syntax_error = 2;
-}
-
-message GetPythonPathRequest {
-}
-
-message GetPythonPathResponse {
-  repeated string path_entry = 1;
+  optional CompletionRequest completion_request = 7;
+  optional CompletionResponse completion_response = 8;
 }
 
 message ErrorResponse {
   optional string message = 1;
+}
+
+message CreateProjectRequest {
+  optional string project_root = 1;
+}
+
+message CreateProjectResponse {
+}
+
+message DestroyProjectRequest {
+  optional string project_root = 1;
+}
+
+message DestroyProjectResponse {
+  optional string project_root = 1;
+}
+
+message CompletionRequest {
+  optional string file_path = 1;
+  optional string source_text = 2;
+  optional int32 cursor_position = 3;
+}
+
+message CompletionResponse {
+  message Proposal {
+    enum Type {
+      INSTANCE = 1;
+      CLASS = 2;
+      FUNCTION = 3;
+      MODULE = 4;
+    }
+
+    enum Scope {
+      LOCAL = 1;
+      GLOBAL = 2;
+      BUILTIN = 3;
+      ATTRIBUTE = 4;
+      IMPORTED = 5;
+      KEYWORD = 6;
+      PARAMETER_KEYWORD = 7;
+    }
+
+    optional string name = 1;
+    optional Type type = 2;
+    optional Scope scope = 3;
+    optional string docstring = 4;
+  }
+
+  repeated Proposal proposal = 1;
+  optional int32 insertion_position = 2;
 }

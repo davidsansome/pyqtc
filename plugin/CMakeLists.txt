@@ -33,24 +33,21 @@ configure_file(
 set(SOURCES
   ${CMAKE_CURRENT_BINARY_DIR}/config.cpp
   closure.cpp
-  codemodel.cpp
   completionassist.cpp
   messagehandler.cpp
-  miniparser.cpp
   plugin.cpp
-  pythonfilter.cpp
+  projects.cpp
+  waitforsignal.cpp
+  workerclient.cpp
   workerpool.cpp
-  workerreply.cpp
 )
 
 set(HEADERS
   closure.h
-  codemodel.h
   messagehandler.h
   plugin.h
-  pythonfilter.h
+  projects.h
   workerpool.h
-  workerreply.h
 )
 
 set(UI)

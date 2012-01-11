@@ -6,16 +6,8 @@ protobuf_generate_python(PROTOBUF_SOURCE
 check_python(
   OUTPUT PYTHON
   DEPENDS ${PROTOBUF_SOURCE}
-  SOURCE main.py
-         parse.py
-         typedes.py
+  SOURCE messagehandler.py
          worker.py
-)
-
-test_python(
-  OUTPUT PYTHON_TESTS
-  DEPENDS ${PYTHON}
-  TESTS ${CMAKE_SOURCE_DIR}/tests/test_parse.py
 )
 
 add_custom_target(parser ALL

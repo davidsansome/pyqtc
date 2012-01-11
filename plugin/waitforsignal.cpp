@@ -15,9 +15,12 @@
    along with Clementine.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "workerpool.h"
+#include "waitforsignal.h"
 
-_WorkerPoolBase::_WorkerPoolBase(QObject* parent)
-  : QObject(parent)
-{
+#include <QEventLoop>
+
+void WaitForSignal(QObject* sender, const char* signal) {
+  QEventLoop loop;
+  QObject::connect(sender, signal, &loop, SLOT(quit()));
+  loop.exec();
 }
