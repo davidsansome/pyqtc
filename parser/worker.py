@@ -89,17 +89,14 @@ class Handler(messagehandler.MessageHandler):
     """
 
     # Guess at the root directory for this project by walking up the path
-    project = self._ProjectForFile(request.completion_request.file_path)
+    project  = self._ProjectForFile(request.completion_request.file_path)
+    source   = request.completion_request.source_text
+    position = request.completion_request.cursor_position
 
-    # Get completions
-    proposals = codeassist.code_assist(project,
-      request.completion_request.source_text,
-      request.completion_request.cursor_position)
-    
-    # Get the starting offset
-    starting_offset = codeassist.starting_offset(
-      request.completion_request.source_text,
-      request.completion_request.cursor_position)
+    # Get completions and starting offset
+    proposals = codeassist.code_assist(project, source, position, maxfixes=10)
+    proposals = codeassist.sorted_proposals(proposals)
+    starting_offset = codeassist.starting_offset(source, position)
 
     # Construct the response protobuf
     response.completion_response.insertion_position = starting_offset
@@ -108,9 +105,7 @@ class Handler(messagehandler.MessageHandler):
       proposal_pb = response.completion_response.proposal.add()
       proposal_pb.name = proposal.name
 
-      docstring = codeassist.get_doc(project,
-        request.completion_request.source_text,
-        request.completion_request.cursor_position)
+      docstring = proposal.get_doc()
 
       if proposal.type in self.PROPOSAL_TYPES:
         proposal_pb.type = self.PROPOSAL_TYPES[proposal.type]
