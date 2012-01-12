@@ -18,6 +18,12 @@ message Message {
   optional TooltipResponse tooltip_response = 10;
 }
 
+message Context {
+  optional string file_path = 1;
+  optional string source_text = 2;
+  optional int32 cursor_position = 3;
+}
+
 message ErrorResponse {
   optional string message = 1;
 }
@@ -38,9 +44,7 @@ message DestroyProjectResponse {
 }
 
 message CompletionRequest {
-  optional string file_path = 1;
-  optional string source_text = 2;
-  optional int32 cursor_position = 3;
+  optional Context context = 1;
 }
 
 message CompletionResponse {
@@ -70,12 +74,11 @@ message CompletionResponse {
 
   repeated Proposal proposal = 1;
   optional int32 insertion_position = 2;
+  optional string calltip = 3;
 }
 
 message TooltipRequest {
-  optional string file_path = 1;
-  optional string source_text = 2;
-  optional int32 cursor_position = 3;
+  optional Context context = 1;
 }
 
 message TooltipResponse {

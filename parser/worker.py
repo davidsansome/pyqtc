@@ -7,6 +7,7 @@ Entry point for the pyqtc worker.
 import logging
 import os
 import rope.base.project
+from rope.base import worder
 from rope.contrib import codeassist
 import sys
 
@@ -42,6 +43,8 @@ class Handler(messagehandler.MessageHandler):
     "parameter_keyword": rpc_pb2.CompletionResponse.Proposal.PARAMETER_KEYWORD,
   }
 
+  MAXFIXES = 10
+
   def __init__(self):
     super(Handler, self).__init__(rpc_pb2.Message)
 
@@ -67,6 +70,17 @@ class Handler(messagehandler.MessageHandler):
 
     project.close()
     del self.projects[root]
+
+  def _Context(self, context):
+    """
+    Returns a (project, source, offset) tuple for the context.
+    """
+
+    return (
+      self._ProjectForFile(context.file_path),
+      context.source_text,
+      context.cursor_position,
+    )
   
   def _ProjectForFile(self, file_path):
     """
@@ -88,19 +102,35 @@ class Handler(messagehandler.MessageHandler):
     Finds completion proposals for the given location in the given source file.
     """
 
+    # Ignore access to protected members pylint: disable=W0212
+
     # Guess at the root directory for this project by walking up the path
-    project  = self._ProjectForFile(request.completion_request.file_path)
-    source   = request.completion_request.source_text
-    position = request.completion_request.cursor_position
+    project, source, offset = self._Context(request.completion_request.context)
+    starting_offset = codeassist.starting_offset(source, offset)
 
-    # Get completions and starting offset
-    proposals = codeassist.code_assist(project, source, position, maxfixes=10)
-    proposals = codeassist.sorted_proposals(proposals)
-    starting_offset = codeassist.starting_offset(source, position)
-
-    # Construct the response protobuf
     response.completion_response.insertion_position = starting_offset
 
+    # Is the cursor immediately after a comma or open paren?
+    word_finder = worder.Worder(source)
+    non_space_offset = word_finder.code_finder._find_last_non_space_char(offset)
+    if word_finder.code_finder.code[non_space_offset] in "(,":
+      paren_start = word_finder.find_parens_start_from_inside(offset)
+
+      # Get a calltip now
+      calltip = codeassist.get_calltip(project, source, paren_start-1,
+                                       maxfixes=self.MAXFIXES,
+                                       remove_self=True)
+      
+      if calltip is not None:
+        response.completion_response.calltip = calltip
+        return
+    
+    # Do normal completion if a calltip couldn't be found
+    proposals = codeassist.code_assist(project, source, offset,
+                                       maxfixes=self.MAXFIXES)
+    proposals = codeassist.sorted_proposals(proposals)
+    
+    # Construct the response protobuf
     for proposal in proposals:
       proposal_pb = response.completion_response.proposal.add()
       proposal_pb.name = proposal.name
@@ -121,13 +151,8 @@ class Handler(messagehandler.MessageHandler):
     Finds and returns a tooltip for the given location in the given source file.
     """
 
-    # Guess at the root directory for this project by walking up the path
-    project  = self._ProjectForFile(request.tooltip_request.file_path)
-    source   = request.tooltip_request.source_text
-    position = request.tooltip_request.cursor_position
-
-    # Get the docstring
-    docstring = codeassist.get_doc(project, source, position, maxfixes=10)
+    project, source, offset = self._Context(request.tooltip_request.context)
+    docstring = codeassist.get_doc(project, source, offset, maxfixes=10)
 
     if docstring is not None:
       response.tooltip_response.rich_text = docstring

@@ -32,9 +32,9 @@ WorkerClient::ReplyType* WorkerClient::Completion(const QString& file_path,
   pb::Message message;
   pb::CompletionRequest* req = message.mutable_completion_request();
 
-  req->set_file_path(file_path);
-  req->set_source_text(source_text);
-  req->set_cursor_position(cursor_position);
+  req->mutable_context()->set_file_path(file_path);
+  req->mutable_context()->set_source_text(source_text);
+  req->mutable_context()->set_cursor_position(cursor_position);
 
   return SendMessageWithReply(&message);
 }
@@ -45,9 +45,9 @@ WorkerClient::ReplyType* WorkerClient::Tooltip(const QString& file_path,
   pb::Message message;
   pb::TooltipRequest* req = message.mutable_tooltip_request();
 
-  req->set_file_path(file_path);
-  req->set_source_text(source_text);
-  req->set_cursor_position(cursor_position);
+  req->mutable_context()->set_file_path(file_path);
+  req->mutable_context()->set_source_text(source_text);
+  req->mutable_context()->set_cursor_position(cursor_position);
 
   return SendMessageWithReply(&message);
 }

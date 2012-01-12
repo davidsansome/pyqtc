@@ -5,6 +5,7 @@
 #include <coreplugin/ifile.h>
 #include <texteditor/codeassist/basicproposalitem.h>
 #include <texteditor/codeassist/basicproposalitemlistmodel.h>
+#include <texteditor/codeassist/functionhintproposal.h>
 #include <texteditor/codeassist/genericproposal.h>
 #include <texteditor/codeassist/iassistinterface.h>
 #include <texteditor/convenience.h>
@@ -96,9 +97,24 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
 
   const pb::CompletionResponse* response = &reply->message().completion_response();
 
+  if (response->has_calltip()) {
+    return CreateCalltipProposal(response->insertion_position(),
+                                 response->calltip());
+  }
+
+  if (response->proposal_size()) {
+    return CreateCompletionProposal(response);
+  }
+
+  return NULL;
+}
+
+TextEditor::IAssistProposal* CompletionAssistProcessor::CreateCompletionProposal(
+    const pb::CompletionResponse* response) {
   QList<TextEditor::BasicProposalItem*> items;
 
-  foreach (const pb::CompletionResponse_Proposal& proposal, response->proposal()) {
+  foreach (const pb::CompletionResponse_Proposal& proposal,
+           response->proposal()) {
     TextEditor::BasicProposalItem* item = new TextEditor::BasicProposalItem;
     item->setText(proposal.name());
     item->setIcon(icons_->iconForType(IconTypeForProposal(proposal)));
@@ -109,4 +125,10 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
   return new TextEditor::GenericProposal(
         response->insertion_position(),
         new TextEditor::BasicProposalItemListModel(items));
+}
+
+TextEditor::IAssistProposal* CompletionAssistProcessor::CreateCalltipProposal(
+    int position, const QString& text) {
+  FunctionHintProposalModel* model = new FunctionHintProposalModel(text);
+  return new TextEditor::FunctionHintProposal(position, model);
 }
