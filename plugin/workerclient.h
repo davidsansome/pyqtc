@@ -15,6 +15,9 @@ public:
   ReplyType* Completion(const QString& file_path,
                         const QString& source_text,
                         int cursor_position);
+  ReplyType* Tooltip(const QString& file_path,
+                     const QString& source_text,
+                     int cursor_position);
 };
 
 } // namespace

@@ -38,3 +38,16 @@ WorkerClient::ReplyType* WorkerClient::Completion(const QString& file_path,
 
   return SendMessageWithReply(&message);
 }
+
+WorkerClient::ReplyType* WorkerClient::Tooltip(const QString& file_path,
+                                               const QString& source_text,
+                                               int cursor_position) {
+  pb::Message message;
+  pb::TooltipRequest* req = message.mutable_tooltip_request();
+
+  req->set_file_path(file_path);
+  req->set_source_text(source_text);
+  req->set_cursor_position(cursor_position);
+
+  return SendMessageWithReply(&message);
+}

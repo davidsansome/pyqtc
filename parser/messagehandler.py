@@ -9,7 +9,6 @@ import socket
 import struct
 import sys
 
-
 class ShortReadError(Exception):
   """
   An EOF was read from the input handle.

@@ -13,6 +13,9 @@ message Message {
 
   optional CompletionRequest completion_request = 7;
   optional CompletionResponse completion_response = 8;
+
+  optional TooltipRequest tooltip_request = 9;
+  optional TooltipResponse tooltip_response = 10;
 }
 
 message ErrorResponse {
@@ -67,4 +70,14 @@ message CompletionResponse {
 
   repeated Proposal proposal = 1;
   optional int32 insertion_position = 2;
+}
+
+message TooltipRequest {
+  optional string file_path = 1;
+  optional string source_text = 2;
+  optional int32 cursor_position = 3;
+}
+
+message TooltipResponse {
+  optional string rich_text = 1;
 }

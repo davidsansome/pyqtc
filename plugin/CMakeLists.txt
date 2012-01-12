@@ -34,6 +34,7 @@ set(SOURCES
   ${CMAKE_CURRENT_BINARY_DIR}/config.cpp
   closure.cpp
   completionassist.cpp
+  hoverhandler.cpp
   messagehandler.cpp
   plugin.cpp
   projects.cpp
@@ -44,6 +45,7 @@ set(SOURCES
 
 set(HEADERS
   closure.h
+  hoverhandler.h
   messagehandler.h
   plugin.h
   projects.h

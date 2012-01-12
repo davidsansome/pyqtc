@@ -1,5 +1,6 @@
 #include "config.h"
 #include "completionassist.h"
+#include "hoverhandler.h"
 #include "plugin.h"
 #include "projects.h"
 #include "workerpool.h"
@@ -39,6 +40,7 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
 
   addAutoReleasedObject(new Projects(worker_pool_));
   addAutoReleasedObject(new CompletionAssistProvider(worker_pool_));
+  addAutoReleasedObject(new HoverHandler(worker_pool_));
 
   return true;
 }

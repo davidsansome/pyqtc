@@ -116,6 +116,22 @@ class Handler(messagehandler.MessageHandler):
       if docstring is not None:
         proposal_pb.docstring = docstring
 
+  def TooltipRequest(self, request, response):
+    """
+    Finds and returns a tooltip for the given location in the given source file.
+    """
+
+    # Guess at the root directory for this project by walking up the path
+    project  = self._ProjectForFile(request.tooltip_request.file_path)
+    source   = request.tooltip_request.source_text
+    position = request.tooltip_request.cursor_position
+
+    # Get the docstring
+    docstring = codeassist.get_doc(project, source, position, maxfixes=10)
+
+    if docstring is not None:
+      response.tooltip_response.rich_text = docstring
+
 
 def Main(args):
   """
