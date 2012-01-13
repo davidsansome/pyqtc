@@ -5,3 +5,6 @@ Makefile
 bin
 *~
 CMakeLists.txt.user
+*.sublime-project
+*.sublime-workspace
+.ropeproject
