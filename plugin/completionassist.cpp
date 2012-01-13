@@ -6,10 +6,12 @@
 #include <texteditor/codeassist/basicproposalitem.h>
 #include <texteditor/codeassist/basicproposalitemlistmodel.h>
 #include <texteditor/codeassist/functionhintproposal.h>
+#include <texteditor/codeassist/functionhintproposalwidget.h>
 #include <texteditor/codeassist/genericproposal.h>
 #include <texteditor/codeassist/iassistinterface.h>
 #include <texteditor/convenience.h>
 
+#include <QStack>
 #include <QTextDocument>
 #include <QtDebug>
 
@@ -21,7 +23,7 @@ CompletionAssistProvider::CompletionAssistProvider(
 {
 }
 
-bool CompletionAssistProvider::supportsEditor(const QString& editorId) const {
+bool CompletionAssistProvider::supportsEditor(const Core::Id &editorId) const {
   return true;
 }
 
@@ -129,6 +131,71 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::CreateCompletionProposal
 
 TextEditor::IAssistProposal* CompletionAssistProcessor::CreateCalltipProposal(
     int position, const QString& text) {
-  FunctionHintProposalModel* model = new FunctionHintProposalModel(text);
+  FunctionHintProposalModel* model =
+      new FunctionHintProposalModel(text);
   return new TextEditor::FunctionHintProposal(position, model);
+}
+
+
+FunctionHintProposalModel::FunctionHintProposalModel(const QString& text)
+  : text_(text),
+    current_arg_(0)
+{
+}
+
+QString FunctionHintProposalModel::text(int index) const {
+  const int open_paren    = text_.indexOf('(');
+  if (open_paren == -1) {
+    return text_;
+  }
+
+  const int close_paren   = text_.lastIndexOf(')');
+  const int last_dot      = qMax(0, text_.lastIndexOf('.', open_paren));
+  const QString args_str  = text_.mid(open_paren + 1,
+                                     close_paren - open_paren - 1);
+  const QStringList args  = args_str.split(',');
+
+  QStringList rich_args;
+  for (int i=0 ; i<args.count() ; ++i) {
+    const QString arg_trimmed = Qt::escape(args[i].trimmed());
+
+    if (current_arg_ == i) {
+      rich_args << QString("<b>%1</b>").arg(arg_trimmed);
+    } else {
+      rich_args << arg_trimmed;
+    }
+  }
+
+  return QString("<i>%1</i>%2(%3)").arg(
+        Qt::escape(text_.left(last_dot)),
+        Qt::escape(text_.mid(last_dot, open_paren - last_dot)),
+        rich_args.join(", "));
+}
+
+int FunctionHintProposalModel::activeArgument(const QString& prefix) const {
+  QStack<QChar> expecting_end_char;
+  int arg = 0;
+
+  foreach (const QChar& c, prefix) {
+    if (!expecting_end_char.isEmpty()) {
+      // We're in some nested scope, waiting to find the end character
+      if (c == expecting_end_char.top()) {
+        expecting_end_char.pop();
+      }
+      continue;
+    }
+
+    if      (c == ',')  arg ++;
+    else if (c == '(')  expecting_end_char.push(')');
+    else if (c == '[')  expecting_end_char.push(']');
+    else if (c == '{')  expecting_end_char.push('}');
+    else if (c == '\'') expecting_end_char.push('\'');
+    else if (c == '"')  expecting_end_char.push('"');
+    else if (c == ')') {
+      return -1;
+    }
+  }
+
+  current_arg_ = arg;
+  return arg;
 }

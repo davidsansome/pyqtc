@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Ignore access to protected members pylint: disable=W0212
+
 """
 Entry point for the pyqtc worker.
 """
@@ -78,7 +80,7 @@ class Handler(messagehandler.MessageHandler):
 
     return (
       self._ProjectForFile(context.file_path),
-      context.source_text,
+      context.source_text + "\n",
       context.cursor_position,
     )
   
@@ -96,23 +98,20 @@ class Handler(messagehandler.MessageHandler):
       file_path = os.path.dirname(file_path)
     
     raise ProjectNotFoundError
-  
+
   def CompletionRequest(self, request, response):
     """
     Finds completion proposals for the given location in the given source file.
     """
 
-    # Ignore access to protected members pylint: disable=W0212
-
-    # Guess at the root directory for this project by walking up the path
+    # Get information out of the request
     project, source, offset = self._Context(request.completion_request.context)
-    starting_offset = codeassist.starting_offset(source, offset)
 
-    response.completion_response.insertion_position = starting_offset
-
-    # Is the cursor immediately after a comma or open paren?
+    # If the cursor is immediately after a comma or open paren, we should look
+    # for a calltip first.
     word_finder = worder.Worder(source)
     non_space_offset = word_finder.code_finder._find_last_non_space_char(offset)
+
     if word_finder.code_finder.code[non_space_offset] in "(,":
       paren_start = word_finder.find_parens_start_from_inside(offset)
 
@@ -122,6 +121,7 @@ class Handler(messagehandler.MessageHandler):
                                        remove_self=True)
       
       if calltip is not None:
+        response.completion_response.insertion_position = paren_start + 1
         response.completion_response.calltip = calltip
         return
     
@@ -129,6 +129,10 @@ class Handler(messagehandler.MessageHandler):
     proposals = codeassist.code_assist(project, source, offset,
                                        maxfixes=self.MAXFIXES)
     proposals = codeassist.sorted_proposals(proposals)
+
+    # Get the position that this completion will start from.
+    starting_offset = codeassist.starting_offset(source, offset)
+    response.completion_response.insertion_position = starting_offset
     
     # Construct the response protobuf
     for proposal in proposals:
@@ -145,7 +149,7 @@ class Handler(messagehandler.MessageHandler):
 
       if docstring is not None:
         proposal_pb.docstring = docstring
-
+  
   def TooltipRequest(self, request, response):
     """
     Finds and returns a tooltip for the given location in the given source file.

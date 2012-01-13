@@ -74,6 +74,7 @@ message CompletionResponse {
 
   repeated Proposal proposal = 1;
   optional int32 insertion_position = 2;
+
   optional string calltip = 3;
 }
 
