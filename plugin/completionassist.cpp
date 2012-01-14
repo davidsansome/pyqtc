@@ -11,6 +11,7 @@
 #include <texteditor/codeassist/iassistinterface.h>
 #include <texteditor/convenience.h>
 
+#include <QApplication>
 #include <QStack>
 #include <QTextDocument>
 #include <QtDebug>
@@ -166,7 +167,15 @@ QString FunctionHintProposalModel::text(int index) const {
     }
   }
 
-  return QString("<i>%1</i>%2(%3)").arg(
+  // Pick a color between the tooltip background and foreground for the module
+  // name.
+  const QPalette& palette = qApp->palette();
+  const QColor& foreground = palette.color(QPalette::ToolTipText);
+
+  return QString("<font style=\"color: rgba(%1, %2, %3, 75%)\">%4</font>%5(%6)").arg(
+        QString::number(foreground.red()),
+        QString::number(foreground.green()),
+        QString::number(foreground.blue()),
         Qt::escape(text_.left(last_dot)),
         Qt::escape(text_.mid(last_dot, open_paren - last_dot)),
         rich_args.join(", "));
