@@ -34,6 +34,9 @@ set(SOURCES
   ${CMAKE_CURRENT_BINARY_DIR}/config.cpp
   closure.cpp
   completionassist.cpp
+  constants.cpp
+  editorfactory.cpp
+  editorwidget.cpp
   hoverhandler.cpp
   messagehandler.cpp
   plugin.cpp
@@ -45,6 +48,7 @@ set(SOURCES
 
 set(HEADERS
   closure.h
+  editorwidget.h
   hoverhandler.h
   messagehandler.h
   plugin.h
@@ -54,7 +58,9 @@ set(HEADERS
 
 set(UI)
 
-set(RESOURCES)
+set(RESOURCES
+  pyqtc.qrc
+)
 
 qt4_wrap_cpp(MOC ${HEADERS})
 qt4_wrap_ui(UIC ${UI})

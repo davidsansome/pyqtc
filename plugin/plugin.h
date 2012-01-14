@@ -19,7 +19,12 @@ public:
   void extensionsInitialized();
   ShutdownFlag aboutToShutdown();
 
+private slots:
+  void JumpToDefinition();
+
 private:
+  static const char* kJumpToDefinition;
+
   WorkerPool<WorkerClient>* worker_pool_;
 };
 
