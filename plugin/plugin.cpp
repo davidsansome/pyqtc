@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "completionassist.h"
 #include "editorfactory.h"
+#include "editorwidget.h"
 #include "hoverhandler.h"
 #include "plugin.h"
 #include "projects.h"
@@ -84,7 +85,46 @@ ExtensionSystem::IPlugin::ShutdownFlag Plugin::aboutToShutdown() {
 }
 
 void Plugin::JumpToDefinition() {
-  qDebug() << "Jump";
+  Core::EditorManager* em = Core::EditorManager::instance();
+  EditorWidget* editor = qobject_cast<EditorWidget*>(em->currentEditor()->widget());
+  if (!editor) {
+    return;
+  }
+
+  WorkerClient::ReplyType* reply =
+      worker_pool_->NextHandler()->DefinitionLocation(
+        editor->file()->fileName(),
+        editor->document()->toPlainText(),
+        editor->position());
+
+  NewClosure(reply, SIGNAL(Finished(bool)),
+             this, SLOT(JumpToDefinitionFinished(WorkerClient::ReplyType*)),
+             reply);
+}
+
+void Plugin::JumpToDefinitionFinished(WorkerClient::ReplyType* reply) {
+  reply->deleteLater();
+
+  if (!reply->is_successful()) {
+    return;
+  }
+
+  Core::EditorManager* em = Core::EditorManager::instance();
+  EditorWidget* editor = qobject_cast<EditorWidget*>(em->currentEditor()->widget());
+  if (!editor) {
+    return;
+  }
+
+  const pb::DefinitionLocationResponse& response =
+      reply->message().definition_location_response();
+
+  if (response.has_line()) {
+    if (response.has_file_path()) {
+      editor->openEditorAt(response.file_path(), response.line());
+    } else {
+      editor->gotoLine(response.line());
+    }
+  }
 }
 
 Q_EXPORT_PLUGIN2(pyqtc, Plugin)

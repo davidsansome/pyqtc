@@ -18,6 +18,9 @@ public:
   ReplyType* Tooltip(const QString& file_path,
                      const QString& source_text,
                      int cursor_position);
+  ReplyType* DefinitionLocation(const QString& file_path,
+                                const QString& source_text,
+                                int cursor_position);
 };
 
 } // namespace

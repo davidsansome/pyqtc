@@ -166,10 +166,27 @@ class Handler(messagehandler.MessageHandler):
     project, resource, source, offset = \
         self._Context(request.tooltip_request.context)
     docstring = codeassist.get_doc(project, source, offset,
-        maxfixes=10, resource=resource)
+        maxfixes=self.MAXFIXES, resource=resource)
 
     if docstring is not None:
       response.tooltip_response.rich_text = docstring
+  
+  def DefinitionLocationRequest(self, request, response):
+    """
+    Finds the definition location of the current symbol.
+    """
+
+    project, resource, source, offset = \
+        self._Context(request.definition_location_request.context)
+    resource, offset = codeassist.get_definition_location(
+        project, source, offset,
+        maxfixes=self.MAXFIXES, resource=resource)
+
+    if resource is not None:
+      response.definition_location_response.file_path = resource.real_path
+    
+    if offset is not None:
+      response.definition_location_response.line = offset
 
 
 def Main(args):

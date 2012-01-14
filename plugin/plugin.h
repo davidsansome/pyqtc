@@ -21,6 +21,7 @@ public:
 
 private slots:
   void JumpToDefinition();
+  void JumpToDefinitionFinished(WorkerClient::ReplyType* reply);
 
 private:
   static const char* kJumpToDefinition;

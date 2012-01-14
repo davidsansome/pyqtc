@@ -51,3 +51,16 @@ WorkerClient::ReplyType* WorkerClient::Tooltip(const QString& file_path,
 
   return SendMessageWithReply(&message);
 }
+
+WorkerClient::ReplyType* WorkerClient::DefinitionLocation(const QString& file_path,
+                                                          const QString& source_text,
+                                                          int cursor_position) {
+  pb::Message message;
+  pb::DefinitionLocationRequest* req = message.mutable_definition_location_request();
+
+  req->mutable_context()->set_file_path(file_path);
+  req->mutable_context()->set_source_text(source_text);
+  req->mutable_context()->set_cursor_position(cursor_position);
+
+  return SendMessageWithReply(&message);
+}

@@ -16,6 +16,9 @@ message Message {
 
   optional TooltipRequest tooltip_request = 9;
   optional TooltipResponse tooltip_response = 10;
+
+  optional DefinitionLocationRequest definition_location_request = 11;
+  optional DefinitionLocationResponse definition_location_response = 12;
 }
 
 message Context {
@@ -84,4 +87,13 @@ message TooltipRequest {
 
 message TooltipResponse {
   optional string rich_text = 1;
+}
+
+message DefinitionLocationRequest {
+  optional Context context = 1;
+}
+
+message DefinitionLocationResponse {
+  optional string file_path = 1;
+  optional int32 line = 2;
 }
