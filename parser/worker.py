@@ -75,11 +75,16 @@ class Handler(messagehandler.MessageHandler):
 
   def _Context(self, context):
     """
-    Returns a (project, source, offset) tuple for the context.
+    Returns a (project, resource, source, offset) tuple for the context.
     """
 
+    project       = self._ProjectForFile(context.file_path)
+    relative_path = os.path.relpath(context.file_path, project.address)
+    resource      = project.get_resource(relative_path)
+
     return (
-      self._ProjectForFile(context.file_path),
+      project,
+      resource,
       context.source_text + "\n",
       context.cursor_position,
     )
@@ -105,7 +110,8 @@ class Handler(messagehandler.MessageHandler):
     """
 
     # Get information out of the request
-    project, source, offset = self._Context(request.completion_request.context)
+    project, resource, source, offset = \
+        self._Context(request.completion_request.context)
 
     # If the cursor is immediately after a comma or open paren, we should look
     # for a calltip first.
@@ -118,6 +124,7 @@ class Handler(messagehandler.MessageHandler):
       # Get a calltip now
       calltip = codeassist.get_calltip(project, source, paren_start-1,
                                        maxfixes=self.MAXFIXES,
+                                       resource=resource,
                                        remove_self=True)
       
       if calltip is not None:
@@ -127,7 +134,8 @@ class Handler(messagehandler.MessageHandler):
     
     # Do normal completion if a calltip couldn't be found
     proposals = codeassist.code_assist(project, source, offset,
-                                       maxfixes=self.MAXFIXES)
+                                       maxfixes=self.MAXFIXES,
+                                       resource=resource)
     proposals = codeassist.sorted_proposals(proposals)
 
     # Get the position that this completion will start from.
@@ -155,8 +163,10 @@ class Handler(messagehandler.MessageHandler):
     Finds and returns a tooltip for the given location in the given source file.
     """
 
-    project, source, offset = self._Context(request.tooltip_request.context)
-    docstring = codeassist.get_doc(project, source, offset, maxfixes=10)
+    project, resource, source, offset = \
+        self._Context(request.tooltip_request.context)
+    docstring = codeassist.get_doc(project, source, offset,
+        maxfixes=10, resource=resource)
 
     if docstring is not None:
       response.tooltip_response.rich_text = docstring
