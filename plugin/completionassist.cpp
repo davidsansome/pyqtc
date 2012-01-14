@@ -1,4 +1,5 @@
 #include "completionassist.h"
+#include "constants.h"
 #include "workerclient.h"
 #include "workerpool.h"
 
@@ -25,7 +26,7 @@ CompletionAssistProvider::CompletionAssistProvider(
 }
 
 bool CompletionAssistProvider::supportsEditor(const Core::Id &editorId) const {
-  return true;
+  return editorId == Core::Id(constants::kEditorId);
 }
 
 int CompletionAssistProvider::activationCharSequenceLength() const {
@@ -33,12 +34,13 @@ int CompletionAssistProvider::activationCharSequenceLength() const {
 }
 
 bool CompletionAssistProvider::isActivationCharSequence(const QString& sequence) const {
-  return sequence == ".";
+  return sequence == "." || sequence == "(" || sequence == ",";
 }
 
 TextEditor::IAssistProcessor* CompletionAssistProvider::createProcessor() const {
   return new CompletionAssistProcessor(worker_pool_, &icons_);
 }
+
 
 CompletionAssistProcessor::CompletionAssistProcessor(
       WorkerPool<WorkerClient>* worker_pool,
@@ -86,6 +88,23 @@ CPlusPlus::Icons::IconType CompletionAssistProcessor::IconTypeForProposal(
 TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
     const TextEditor::IAssistInterface* interface) {
   QScopedPointer<const TextEditor::IAssistInterface> scoped_interface(interface);
+
+  switch (interface->reason()) {
+  case TextEditor::ActivationCharacter:
+  case TextEditor::ExplicitlyInvoked:
+    break;
+
+  case TextEditor::IdleEditor:
+    // Only trigger completions if at least 3 characters of a name have been
+    // typed.
+    for (int i=1 ; i<=3 ; ++i) {
+      QChar c(interface->characterAt(interface->position() - i));
+      if (!c.isLetterOrNumber()) {
+        return NULL;
+      }
+    }
+    break;
+  }
 
   WorkerClient::ReplyType* reply =
       worker_pool_->NextHandler()->Completion(
