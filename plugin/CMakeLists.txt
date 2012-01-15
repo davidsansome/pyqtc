@@ -41,6 +41,8 @@ set(SOURCES
   projects.cpp
   pythoneditor.cpp
   pythoneditorfactory.cpp
+  pythonfilter.cpp
+  pythonicons.cpp
   pythonindenter.cpp
   waitforsignal.cpp
   workerclient.cpp

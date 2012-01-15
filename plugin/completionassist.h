@@ -18,9 +18,12 @@ namespace TextEditor {
 
 namespace pyqtc {
 
+class PythonIcons;
+
 class CompletionAssistProvider : public TextEditor::CompletionAssistProvider {
 public:
-  CompletionAssistProvider(WorkerPool<WorkerClient>* worker_pool);
+  CompletionAssistProvider(WorkerPool<WorkerClient>* worker_pool,
+                           const PythonIcons* icons);
 
   bool supportsEditor(const Core::Id& editorId) const;
   int activationCharSequenceLength() const;
@@ -29,21 +32,18 @@ public:
 
 private:
   WorkerPool<WorkerClient>* worker_pool_;
-  CPlusPlus::Icons icons_;
+  const PythonIcons* icons_;
 };
 
 
 class CompletionAssistProcessor : public TextEditor::IAssistProcessor {
 public:
   CompletionAssistProcessor(WorkerPool<WorkerClient>* worker_pool,
-                            const CPlusPlus::Icons* icons);
+                            const PythonIcons* icons);
 
   TextEditor::IAssistProposal* perform(const TextEditor::IAssistInterface* interface);
 
 private:
-  static CPlusPlus::Icons::IconType IconTypeForProposal(
-      const pb::CompletionResponse_Proposal& proposal);
-
   TextEditor::IAssistProposal* CreateCalltipProposal(
       int position, const QString& text);
   TextEditor::IAssistProposal* CreateCompletionProposal(
@@ -51,7 +51,7 @@ private:
 
 private:
   WorkerPool<WorkerClient>* worker_pool_;
-  const CPlusPlus::Icons* icons_;
+  const PythonIcons* icons_;
 };
 
 

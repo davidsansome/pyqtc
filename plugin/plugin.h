@@ -8,6 +8,8 @@
 
 namespace pyqtc {
 
+class PythonIcons;
+
 class Plugin : public ExtensionSystem::IPlugin {
   Q_OBJECT
 
@@ -27,6 +29,7 @@ private:
   static const char* kJumpToDefinition;
 
   WorkerPool<WorkerClient>* worker_pool_;
+  PythonIcons* icons_;
 };
 
 } // namespace pyqtc

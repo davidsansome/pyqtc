@@ -1,5 +1,6 @@
 #include "completionassist.h"
 #include "constants.h"
+#include "pythonicons.h"
 #include "workerclient.h"
 #include "workerpool.h"
 
@@ -19,9 +20,10 @@
 
 using namespace pyqtc;
 
-CompletionAssistProvider::CompletionAssistProvider(
-    WorkerPool<WorkerClient>* worker_pool)
-  : worker_pool_(worker_pool)
+CompletionAssistProvider::CompletionAssistProvider(WorkerPool<WorkerClient>* worker_pool,
+                                                   const PythonIcons* icons)
+  : worker_pool_(worker_pool),
+    icons_(icons)
 {
 }
 
@@ -38,51 +40,15 @@ bool CompletionAssistProvider::isActivationCharSequence(const QString& sequence)
 }
 
 TextEditor::IAssistProcessor* CompletionAssistProvider::createProcessor() const {
-  return new CompletionAssistProcessor(worker_pool_, &icons_);
+  return new CompletionAssistProcessor(worker_pool_, icons_);
 }
 
 
-CompletionAssistProcessor::CompletionAssistProcessor(
-      WorkerPool<WorkerClient>* worker_pool,
-      const CPlusPlus::Icons* icons)
+CompletionAssistProcessor::CompletionAssistProcessor(WorkerPool<WorkerClient>* worker_pool,
+      const PythonIcons* icons)
   : worker_pool_(worker_pool),
     icons_(icons)
 {
-}
-
-CPlusPlus::Icons::IconType CompletionAssistProcessor::IconTypeForProposal(
-      const pb::CompletionResponse_Proposal& proposal) {
-  const bool is_private = proposal.name().startsWith("_");
-
-  // Keywords are treated differently
-  switch (proposal.scope()) {
-  case pb::CompletionResponse_Proposal_Scope_KEYWORD:
-    return CPlusPlus::Icons::KeywordIconType;
-
-  default:
-    // Continue to look at the type
-    break;
-  }
-
-  switch (proposal.type()) {
-  case pb::CompletionResponse_Proposal_Type_INSTANCE:
-    return is_private ?
-          CPlusPlus::Icons::VarPrivateIconType :
-          CPlusPlus::Icons::VarPublicIconType;
-
-  case pb::CompletionResponse_Proposal_Type_CLASS:
-    return CPlusPlus::Icons::ClassIconType;
-
-  case pb::CompletionResponse_Proposal_Type_FUNCTION:
-    return is_private ?
-          CPlusPlus::Icons::FuncPrivateIconType :
-          CPlusPlus::Icons::FuncPublicIconType;
-
-  case pb::CompletionResponse_Proposal_Type_MODULE:
-    return CPlusPlus::Icons::NamespaceIconType;
-  }
-
-  return CPlusPlus::Icons::UnknownIconType;
 }
 
 TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
@@ -106,13 +72,12 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::perform(
     break;
   }
 
-  WorkerClient::ReplyType* reply =
+  QScopedPointer<WorkerClient::ReplyType> reply(
       worker_pool_->NextHandler()->Completion(
         interface->file()->fileName(),
         interface->document()->toPlainText(),
-        interface->position());
+        interface->position()));
   reply->WaitForFinished();
-  reply->deleteLater();
 
   if (!reply->is_successful())
     return NULL;
@@ -139,7 +104,7 @@ TextEditor::IAssistProposal* CompletionAssistProcessor::CreateCompletionProposal
            response->proposal()) {
     TextEditor::BasicProposalItem* item = new TextEditor::BasicProposalItem;
     item->setText(proposal.name());
-    item->setIcon(icons_->iconForType(IconTypeForProposal(proposal)));
+    item->setIcon(icons_->IconForCompletionProposal(proposal));
 
     items << item;
   }

@@ -7,6 +7,7 @@
 
 #include <cplusplus/Icons.h>
 
+#include "workerclient.h"
 #include "workerpool.h"
 
 
@@ -27,6 +28,9 @@ public:
 private slots:
   void ProjectAdded(ProjectExplorer::Project* project);
   void AboutToRemoveProject(ProjectExplorer::Project* project);
+
+  void CreateProjectFinished(WorkerClient::ReplyType* reply,
+                             const QString& project_root);
 
 private:
   WorkerPool<WorkerClient>* worker_pool_;

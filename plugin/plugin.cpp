@@ -1,11 +1,13 @@
 #include "config.h"
 #include "constants.h"
 #include "completionassist.h"
-#include "pythoneditor.h"
-#include "pythoneditorfactory.h"
 #include "hoverhandler.h"
 #include "plugin.h"
 #include "projects.h"
+#include "pythoneditor.h"
+#include "pythoneditorfactory.h"
+#include "pythonfilter.h"
+#include "pythonicons.h"
 #include "workerpool.h"
 
 #include <coreplugin/actionmanager/actionmanager.h>
@@ -35,7 +37,8 @@ inline void InitResources() {
 
 
 Plugin::Plugin()
-  : worker_pool_(new WorkerPool<WorkerClient>(this))
+  : worker_pool_(new WorkerPool<WorkerClient>(this)),
+    icons_(new PythonIcons)
 {
   InitResources();
 
@@ -46,6 +49,7 @@ Plugin::Plugin()
 }
 
 Plugin::~Plugin() {
+  delete icons_;
 }
 
 bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
@@ -59,9 +63,10 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
       return false;
 
   addAutoReleasedObject(new Projects(worker_pool_));
-  addAutoReleasedObject(new CompletionAssistProvider(worker_pool_));
+  addAutoReleasedObject(new CompletionAssistProvider(worker_pool_, icons_));
   addAutoReleasedObject(new HoverHandler(worker_pool_));
   addAutoReleasedObject(new PythonEditorFactory);
+  addAutoReleasedObject(new PythonFilter(worker_pool_, icons_));
 
   Core::ActionManager* am = core->actionManager();
   Core::Context context(constants::kEditorId);

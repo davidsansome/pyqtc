@@ -96,7 +96,7 @@ class MessageHandler(object):
       try:
         function = getattr(self, func_name)
       except AttributeError:
-        raise UnknownRequestType
+        raise UnknownRequestType(name)
 
       response_name = name[:-len(self.REQUEST_SUFFIX)] + self.RESPONSE_SUFFIX
 

@@ -7,6 +7,9 @@ import re
 import sqlite3
 
 import rope.base.pynames
+import rope.base.pyobjects
+
+import rpc_pb2
 
 
 class SymbolIndex(object):
@@ -21,7 +24,8 @@ class SymbolIndex(object):
   SCHEMA = [
     """
     CREATE TABLE files (
-      file_path TEXT
+      file_path TEXT,
+      module_name TEXT
     );
     CREATE TABLE symbols (
       fileid INTEGER,
@@ -94,14 +98,17 @@ class SymbolIndex(object):
   def Search(self, query, file_path=None, symbol_type=None, limit=1000):
     """
     Searches for the given query string in the index and returns an iterator
-    over (file_path, line_number, symbol_name, symbol_type) tuples.
+    over (module_name, file_path, line_number, symbol_name, symbol_type) tuples.
     If file_path is not None, only symbols in that file are returned.
     If symbol_type is not None, only symbols of that given type are returned.
     """
 
     # Remove special FTS characters from the user's query.  The .lower() removes
     # NEAR/n instructions as well.
-    fts_query = re.sub(r'["*:]', ' ', query.lower())
+    fts_query = re.sub(r'\W+', ' ', query.lower())
+
+    # Stick * on the end of each search term
+    fts_query = " ".join("%s*" % x for x in fts_query.split(" "))
 
     # Build the WHERE section of the query.
     where_clauses = [
@@ -123,7 +130,8 @@ class SymbolIndex(object):
 
     # Build the query
     sql = """
-      SELECT f.file_path,
+      SELECT f.module_name,
+             f.file_path,
              s.line_number, 
              s.symbol_name,
              s.symbol_type
@@ -144,22 +152,22 @@ class SymbolIndex(object):
     """
 
     # Open this file
-    pyobject = self.project.pycore.resource_to_pyobject(resource)
+    pyobject    = self.project.pycore.resource_to_pyobject(resource)
     module_name = self.project.pycore.modname(resource)
-    file_path = resource.path
+    file_path   = resource.path
 
     # Get the list of symbols in the module
     symbols = []
-    self._WalkPyObject(pyobject, module_name, symbols)
+    self._WalkPyObject(pyobject, None, symbols)
 
     # Add the file to the database
     fileid = self.conn.execute(
-      "INSERT INTO files (file_path) VALUES(?)",
-      (file_path,)).lastrowid
+      "INSERT INTO files (module_name, file_path) VALUES (?, ?)",
+      (module_name, file_path)).lastrowid
 
     # Add each symbol to the database
-    for symbol_name, line_number in symbols:
-      self._AddSymbol(fileid, line_number, symbol_name, 0)
+    for symbol_name, line_number, symbol_type in symbols:
+      self._AddSymbol(fileid, line_number, symbol_name, symbol_type)
   
   def _AddSymbol(self, fileid, line_number, symbol_name, symbol_type):
     """
@@ -184,21 +192,27 @@ class SymbolIndex(object):
     Walks pyobject and all its children, adding a tuple for each one to ret.
     """
 
-    # Get the name and line number of this object
-    try:
+    if dotted_name is not None:
       line_number = pyobject.get_ast().lineno
-    except AttributeError:
-      # Modules won't have line numbers
-      line_number = 0
-    
-    # Add this object to the result list
-    ret.append((dotted_name, line_number))
+      symbol_type = rpc_pb2.VARIABLE
+
+      if isinstance(pyobject, rope.base.pyobjects.AbstractFunction):
+        symbol_type = rpc_pb2.FUNCTION
+      elif isinstance(pyobject, rope.base.pyobjects.AbstractClass):
+        symbol_type = rpc_pb2.CLASS
+      elif isinstance(pyobject, rope.base.pyobjects.AbstractModule):
+        symbol_type = rpc_pb2.MODULE
+      
+      # Add this object to the result list
+      ret.append((dotted_name, line_number, symbol_type))
 
     # Walk the child objects
     for name, pyname in pyobject.get_attributes().items():
       if isinstance(pyname, rope.base.pynames.DefinedName):
-        self._WalkPyObject(
-          pyname.get_object(), "%s.%s" % (dotted_name, name), ret)
+        if dotted_name is not None:
+          name = "%s.%s" % (dotted_name, name)
+
+        self._WalkPyObject(pyname.get_object(), name, ret)
   
   def _RemoveFile(self, fileid):
     """

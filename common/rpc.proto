@@ -141,10 +141,11 @@ message SearchRequest {
 
 message SearchResponse {
   message Result {
-    optional string file_path = 1;
-    optional int32 line_number = 2;
-    optional string symbol_name = 3;
-    optional SymbolType symbol_type = 4;
+    optional string module_name = 1;
+    optional string file_path = 2;
+    optional int32 line_number = 3;
+    optional string symbol_name = 4;
+    optional SymbolType symbol_type = 5;
   }
 
   repeated Result result = 1;

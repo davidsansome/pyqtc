@@ -105,15 +105,16 @@ class Handler(messagehandler.MessageHandler):
     Tries to find the project that contains the given file.
     """
 
-    while file_path:
+    project_root = file_path
+    while project_root:
       try:
-        return self.projects[file_path]
+        return self.projects[project_root]
       except KeyError:
         pass
 
-      file_path = os.path.dirname(file_path)
+      project_root = os.path.dirname(project_root)
     
-    raise ProjectNotFoundError
+    raise ProjectNotFoundError(file_path)
 
   def CompletionRequest(self, request, response):
     """
@@ -196,7 +197,7 @@ class Handler(messagehandler.MessageHandler):
     if offset is not None:
       response.line = offset
   
-  def RebuildSymbolTableRequest(self, request, _response):
+  def RebuildSymbolIndexRequest(self, request, _response):
     """
     Parses all the files in the project and rebuilds the symbol index.
     """
@@ -204,7 +205,7 @@ class Handler(messagehandler.MessageHandler):
     project = self.projects[request.project_root]
     project.symbol_index.Rebuild()
   
-  def UpdateSymbolTableRequest(self, request, _response):
+  def UpdateSymbolIndexRequest(self, request, _response):
     """
     Parses just one file in the project and updates the symbol index.
     """
@@ -222,32 +223,40 @@ class Handler(messagehandler.MessageHandler):
     Searches the symbol index.
     """
 
-    project = self._ProjectForFile(request.file_path)
-    project_dir = project.rope_project.address
-
-    file_path = None
-    symbol_type = None
-
+    # If a file_path was provided, only search in the project that owns it.
+    # Otherwise search all the projects.
     if request.HasField("file_path"):
-      # Make the file_path relative to the project
-      file_path = os.path.relpath(
-          request.file_path, project_dir)
+      projects = [self._ProjectForFile(request.file_path)]
+    else:
+      projects = self.projects.values()
     
-    if request.HasField("symbol_type") and request.symbol_type != rpc_pb2.ALL:
-      symbol_type = request.symbol_type
-    
-    # Do the query
-    results = project.symbol_index.Search(request.query,
-        file_path=file_path, symbol_type=symbol_type)
-    
-    # Create the response
-    for file_path, line_number, symbol_name, symbol_type in results:
-      result_pb = response.result.add()
+    for project in projects:
+      project_dir = project.rope_project.address
 
-      result_pb.file_path   = os.path.join(project_dir, file_path)
-      result_pb.line_number = line_number
-      result_pb.symbol_name = symbol_name
-      result_pb.symbol_type = symbol_type
+      file_path = None
+      symbol_type = None
+
+      if request.HasField("file_path"):
+        # Make the file_path relative to the project
+        file_path = os.path.relpath(
+            request.file_path, project_dir)
+      
+      if request.HasField("symbol_type") and request.symbol_type != rpc_pb2.ALL:
+        symbol_type = request.symbol_type
+      
+      # Do the query
+      results = project.symbol_index.Search(request.query,
+          file_path=file_path, symbol_type=symbol_type)
+      
+      # Create the response
+      for module_name, file_path, line_number, symbol_name, symbol_type in results:
+        result_pb = response.result.add()
+
+        result_pb.module_name = module_name
+        result_pb.file_path   = os.path.join(project_dir, file_path)
+        result_pb.line_number = line_number
+        result_pb.symbol_name = symbol_name
+        result_pb.symbol_type = symbol_type
 
 
 def Main(args):
