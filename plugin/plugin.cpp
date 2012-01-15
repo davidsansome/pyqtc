@@ -1,8 +1,8 @@
 #include "config.h"
 #include "constants.h"
 #include "completionassist.h"
-#include "editorfactory.h"
-#include "editorwidget.h"
+#include "pythoneditor.h"
+#include "pythoneditorfactory.h"
 #include "hoverhandler.h"
 #include "plugin.h"
 #include "projects.h"
@@ -61,7 +61,7 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
   addAutoReleasedObject(new Projects(worker_pool_));
   addAutoReleasedObject(new CompletionAssistProvider(worker_pool_));
   addAutoReleasedObject(new HoverHandler(worker_pool_));
-  addAutoReleasedObject(new EditorFactory);
+  addAutoReleasedObject(new PythonEditorFactory);
 
   Core::ActionManager* am = core->actionManager();
   Core::Context context(constants::kEditorId);
@@ -86,7 +86,8 @@ ExtensionSystem::IPlugin::ShutdownFlag Plugin::aboutToShutdown() {
 
 void Plugin::JumpToDefinition() {
   Core::EditorManager* em = Core::EditorManager::instance();
-  EditorWidget* editor = qobject_cast<EditorWidget*>(em->currentEditor()->widget());
+  PythonEditorWidget* editor = qobject_cast<PythonEditorWidget*>(
+        em->currentEditor()->widget());
   if (!editor) {
     return;
   }
@@ -110,7 +111,8 @@ void Plugin::JumpToDefinitionFinished(WorkerClient::ReplyType* reply) {
   }
 
   Core::EditorManager* em = Core::EditorManager::instance();
-  EditorWidget* editor = qobject_cast<EditorWidget*>(em->currentEditor()->widget());
+  PythonEditorWidget* editor = qobject_cast<PythonEditorWidget*>(
+        em->currentEditor()->widget());
   if (!editor) {
     return;
   }

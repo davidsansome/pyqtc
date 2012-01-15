@@ -15,21 +15,21 @@
    along with Clementine.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PYQTC_EDITORWIDGET_H
-#define PYQTC_EDITORWIDGET_H
+#ifndef PYQTC_PYTHONEDITOR_H
+#define PYQTC_PYTHONEDITOR_H
 
 #include <texteditor/plaintexteditor.h>
 
 
 namespace pyqtc {
 
-class EditorWidget;
+class PythonEditorWidget;
 
-class Editor : public TextEditor::PlainTextEditor {
+class PythonEditor : public TextEditor::PlainTextEditor {
   Q_OBJECT
 
 public:
-  Editor(EditorWidget* editor);
+  PythonEditor(PythonEditorWidget* editor);
 
   bool duplicateSupported() const { return false; }
   Core::IEditor* duplicate(QWidget* parent) { return NULL; }
@@ -38,17 +38,17 @@ public:
 };
 
 
-class EditorWidget : public TextEditor::PlainTextEditorWidget {
+class PythonEditorWidget : public TextEditor::PlainTextEditorWidget {
   Q_OBJECT
 
 public:
-  EditorWidget(QWidget* parent);
+  PythonEditorWidget(QWidget* parent);
 
   void unCommentSelection();
 
 protected:
   void contextMenuEvent(QContextMenuEvent* e);
-  TextEditor::BaseTextEditor* createEditor() { return new Editor(this); }
+  TextEditor::BaseTextEditor* createEditor() { return new PythonEditor(this); }
 
 private slots:
   void Configure();
@@ -59,4 +59,4 @@ private:
 
 } // namespace pyqtc
 
-#endif // PYQTC_EDITORWIDGET_H
+#endif // PYQTC_PYTHONEDITOR_H

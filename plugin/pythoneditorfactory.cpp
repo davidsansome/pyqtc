@@ -16,8 +16,8 @@
 */
 
 #include "constants.h"
-#include "editorfactory.h"
-#include "editorwidget.h"
+#include "pythoneditor.h"
+#include "pythoneditorfactory.h"
 
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/editormanager/ieditor.h>
@@ -29,7 +29,7 @@
 using namespace pyqtc;
 
 
-EditorFactory::EditorFactory(QObject* parent)
+PythonEditorFactory::PythonEditorFactory(QObject* parent)
   : Core::IEditorFactory(parent)
 {
   mime_types_ << "text/python"
@@ -43,19 +43,19 @@ EditorFactory::EditorFactory(QObject* parent)
       TextEditor::TextEditorActionHandler::UnCollapseAll);
 }
 
-EditorFactory::~EditorFactory() {
+PythonEditorFactory::~PythonEditorFactory() {
   delete action_handler_;
 }
 
-Core::Id EditorFactory::id() const {
+Core::Id PythonEditorFactory::id() const {
   return constants::kEditorId;
 }
 
-QString EditorFactory::displayName() const {
+QString PythonEditorFactory::displayName() const {
   return tr(constants::kEditorDisplayName);
 }
 
-Core::IFile* EditorFactory::open(const QString& file_name) {
+Core::IFile* PythonEditorFactory::open(const QString& file_name) {
   qDebug() << "Opening" << file_name;
 
   Core::IEditor* iface = Core::EditorManager::instance()->openEditor(file_name, id());
@@ -66,8 +66,8 @@ Core::IFile* EditorFactory::open(const QString& file_name) {
   return iface->file();
 }
 
-Core::IEditor* EditorFactory::createEditor(QWidget* parent) {
-  EditorWidget* widget = new EditorWidget(parent);
+Core::IEditor* PythonEditorFactory::createEditor(QWidget* parent) {
+  PythonEditorWidget* widget = new PythonEditorWidget(parent);
 
   action_handler_->setupActions(widget);
   TextEditor::TextEditorSettings::instance()->initializeEditor(widget);
@@ -75,7 +75,7 @@ Core::IEditor* EditorFactory::createEditor(QWidget* parent) {
   return widget->editor();
 }
 
-QStringList EditorFactory::mimeTypes() const {
+QStringList PythonEditorFactory::mimeTypes() const {
   return mime_types_;
 }
 

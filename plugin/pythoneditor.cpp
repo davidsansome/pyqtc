@@ -16,7 +16,7 @@
 */
 
 #include "constants.h"
-#include "editorwidget.h"
+#include "pythoneditor.h"
 #include "pythonindenter.h"
 
 #include <coreplugin/actionmanager/actioncontainer.h>
@@ -26,7 +26,7 @@
 
 namespace pyqtc {
 
-Editor::Editor(EditorWidget* editor)
+PythonEditor::PythonEditor(PythonEditorWidget* editor)
   : TextEditor::PlainTextEditor(editor)
 {
   setContext(Core::Context(constants::kEditorId,
@@ -34,12 +34,12 @@ Editor::Editor(EditorWidget* editor)
                            TextEditor::Constants::C_TEXTEDITOR));
 }
 
-Core::Id Editor::id() const {
+Core::Id PythonEditor::id() const {
   return constants::kEditorId;
 }
 
 
-EditorWidget::EditorWidget(QWidget* parent)
+PythonEditorWidget::PythonEditorWidget(QWidget* parent)
   : TextEditor::PlainTextEditorWidget(parent)
 {
   setMimeType(QLatin1String(constants::kPythonMimetype));
@@ -52,11 +52,11 @@ EditorWidget::EditorWidget(QWidget* parent)
   comment_definition_.setMultiLineEnd("'''");
 }
 
-void EditorWidget::unCommentSelection() {
+void PythonEditorWidget::unCommentSelection() {
   Utils::unCommentSelection(this, comment_definition_);
 }
 
-void EditorWidget::contextMenuEvent(QContextMenuEvent* e) {
+void PythonEditorWidget::contextMenuEvent(QContextMenuEvent* e) {
   QScopedPointer<QMenu> menu(new QMenu);
 
   Core::ActionManager* am = Core::ICore::instance()->actionManager();

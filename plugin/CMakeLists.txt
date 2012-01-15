@@ -35,12 +35,12 @@ set(SOURCES
   closure.cpp
   completionassist.cpp
   constants.cpp
-  editorfactory.cpp
-  editorwidget.cpp
   hoverhandler.cpp
   messagehandler.cpp
   plugin.cpp
   projects.cpp
+  pythoneditor.cpp
+  pythoneditorfactory.cpp
   pythonindenter.cpp
   waitforsignal.cpp
   workerclient.cpp
@@ -49,11 +49,11 @@ set(SOURCES
 
 set(HEADERS
   closure.h
-  editorwidget.h
   hoverhandler.h
   messagehandler.h
   plugin.h
   projects.h
+  pythoneditor.h
   workerpool.h
 )
 

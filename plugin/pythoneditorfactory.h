@@ -15,8 +15,8 @@
    along with Clementine.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PYQTC_EDITORFACTORY_H
-#define PYQTC_EDITORFACTORY_H
+#ifndef PYQTC_PYTHONEDITORFACTORY_H
+#define PYQTC_PYTHONEDITORFACTORY_H
 
 #include <coreplugin/editormanager/ieditorfactory.h>
 
@@ -30,10 +30,10 @@ namespace TextEditor {
 
 namespace pyqtc {
 
-class EditorFactory : public Core::IEditorFactory {
+class PythonEditorFactory : public Core::IEditorFactory {
 public:
-  EditorFactory(QObject* parent = NULL);
-  ~EditorFactory();
+  PythonEditorFactory(QObject* parent = NULL);
+  ~PythonEditorFactory();
 
   // IEditorFactory
   QStringList mimeTypes() const;
@@ -49,4 +49,4 @@ private:
 
 } // namespace pyqtc
 
-#endif // PYQTC_EDITORFACTORY_H
+#endif // PYQTC_PYTHONEDITORFACTORY_H
