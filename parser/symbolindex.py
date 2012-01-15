@@ -6,6 +6,7 @@ import os.path
 import re
 import sqlite3
 
+import rope.base.exceptions
 import rope.base.pynames
 import rope.base.pyobjects
 
@@ -152,7 +153,12 @@ class SymbolIndex(object):
     """
 
     # Open this file
-    pyobject    = self.project.pycore.resource_to_pyobject(resource)
+    try:
+      pyobject  = self.project.pycore.resource_to_pyobject(resource)
+    except rope.base.exceptions.RopeError:
+      # If the file couldn't be loaded, ignore it
+      return
+
     module_name = self.project.pycore.modname(resource)
     file_path   = resource.path
 
@@ -207,7 +213,13 @@ class SymbolIndex(object):
       ret.append((dotted_name, line_number, symbol_type))
 
     # Walk the child objects
-    for name, pyname in pyobject.get_attributes().items():
+    try:
+      children = pyobject.get_attributes().items()
+    except Exception:
+      # Ignore any errors from rope
+      return
+    
+    for name, pyname in children:
       if isinstance(pyname, rope.base.pynames.DefinedName):
         if dotted_name is not None:
           name = "%s.%s" % (dotted_name, name)
