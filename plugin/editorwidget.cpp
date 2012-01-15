@@ -17,6 +17,7 @@
 
 #include "constants.h"
 #include "editorwidget.h"
+#include "pythonindenter.h"
 
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
@@ -43,6 +44,7 @@ EditorWidget::EditorWidget(QWidget* parent)
 {
   setMimeType(QLatin1String(constants::kPythonMimetype));
   setDisplayName(tr(constants::kEditorDisplayName));
+  setIndenter(new PythonIndenter);
 
   comment_definition_.setAfterWhiteSpaces(false);
   comment_definition_.setSingleLine("#");

@@ -41,6 +41,7 @@ set(SOURCES
   messagehandler.cpp
   plugin.cpp
   projects.cpp
+  pythonindenter.cpp
   waitforsignal.cpp
   workerclient.cpp
   workerpool.cpp
