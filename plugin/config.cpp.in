@@ -3,7 +3,7 @@
 namespace pyqtc {
 namespace config {
 
-const char* kWorkerSourcePath = "@WORKER_SOURCE_PATH@";
+const char* kWorkerZipPath = "@WORKER_ZIP_PATH@";
 
 }
 }

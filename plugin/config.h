@@ -4,7 +4,7 @@
 namespace pyqtc {
 namespace config {
 
-extern const char* kWorkerSourcePath;
+extern const char* kWorkerZipPath;
 
 }
 }

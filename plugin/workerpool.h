@@ -69,6 +69,10 @@ public:
   // Start().
   void SetExecutableName(const QString& executable_name);
 
+  // Sets any additional arguments that are to be passed to workers.  The
+  // socket path is added to this list automatically.
+  void SetExecutableArguments(const QStringList& args);
+
   // Sets the number of worker process to use.  Defaults to
   // 1 <= (processors / 2) <= 2.
   void SetWorkerCount(int count);
@@ -125,6 +129,7 @@ private:
 private:
   QString local_server_name_;
   QString executable_name_;
+  QStringList executable_args_;
   QString executable_path_;
 
   int worker_count_;
@@ -182,6 +187,12 @@ template <typename HandlerType>
 void WorkerPool<HandlerType>::SetExecutableName(const QString& executable_name) {
   Q_ASSERT(workers_.isEmpty());
   executable_name_ = executable_name;
+}
+
+template <typename HandlerType>
+void WorkerPool<HandlerType>::SetExecutableArguments(const QStringList& args) {
+  Q_ASSERT(workers_.isEmpty());
+  executable_args_ = args;
 }
 
 template <typename HandlerType>
@@ -246,13 +257,14 @@ void WorkerPool<HandlerType>::StartOneWorker(Worker* worker) {
     }
   }
 
-  qDebug() << "Starting worker" << executable_path_
-           << worker->local_server_->fullServerName();
+  QStringList args = executable_args_;
+  args << worker->local_server_->fullServerName();
+
+  qDebug() << "Starting worker" << executable_path_ << args;
 
   // Start the process
   worker->process_->setProcessChannelMode(QProcess::ForwardedChannels);
-  worker->process_->start(executable_path_,
-                          QStringList() << worker->local_server_->fullServerName());
+  worker->process_->start(executable_path_, args);
 }
 
 template <typename HandlerType>

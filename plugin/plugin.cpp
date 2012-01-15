@@ -42,7 +42,8 @@ Plugin::Plugin()
 {
   InitResources();
 
-  worker_pool_->SetExecutableName(config::kWorkerSourcePath);
+  worker_pool_->SetExecutableName("python");
+  worker_pool_->SetExecutableArguments(QStringList() << config::kWorkerZipPath);
   worker_pool_->SetWorkerCount(1);
   worker_pool_->SetLocalServerName("pyqtc");
   worker_pool_->Start();
