@@ -19,6 +19,19 @@ message Message {
 
   optional DefinitionLocationRequest definition_location_request = 11;
   optional DefinitionLocationResponse definition_location_response = 12;
+
+  optional RebuildSymbolIndexRequest rebuild_symbol_index_request = 13;
+  optional RebuildSymbolIndexResponse rebuild_symbol_index_response = 14;
+
+  optional UpdateSymbolIndexRequest update_symbol_index_request = 15;
+  optional UpdateSymbolIndexResponse update_symbol_index_response = 16;
+
+  optional SearchRequest search_request = 17;
+  optional SearchResponse search_response = 18;
+}
+
+service WorkerService {
+  rpc CreateProject (CreateProjectRequest) returns (CreateProjectResponse);
 }
 
 message Context {
@@ -96,4 +109,43 @@ message DefinitionLocationRequest {
 message DefinitionLocationResponse {
   optional string file_path = 1;
   optional int32 line = 2;
+}
+
+message RebuildSymbolIndexRequest {
+  optional string project_root = 1;
+}
+
+message RebuildSymbolIndexResponse {
+}
+
+message UpdateSymbolIndexRequest {
+  optional string file_path = 1;
+}
+
+message UpdateSymbolIndexResponse {
+}
+
+enum SymbolType {
+  ALL = 0;
+  MODULE = 1;
+  CLASS = 2;
+  FUNCTION = 3;
+  VARIABLE = 4;
+}
+
+message SearchRequest {
+  optional string query = 1;
+  optional string file_path = 2;
+  optional SymbolType symbol_type = 3;
+}
+
+message SearchResponse {
+  message Result {
+    optional string file_path = 1;
+    optional int32 line_number = 2;
+    optional string symbol_name = 3;
+    optional SymbolType symbol_type = 4;
+  }
+
+  repeated Result result = 1;
 }

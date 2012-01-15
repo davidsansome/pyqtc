@@ -7,6 +7,7 @@ check_python(
   OUTPUT PYTHON
   DEPENDS ${PROTOBUF_SOURCE}
   SOURCE messagehandler.py
+         symbolindex.py
          worker.py
 )
 

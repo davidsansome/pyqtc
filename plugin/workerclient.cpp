@@ -64,3 +64,40 @@ WorkerClient::ReplyType* WorkerClient::DefinitionLocation(const QString& file_pa
 
   return SendMessageWithReply(&message);
 }
+
+WorkerClient::ReplyType* WorkerClient::RebuildSymbolIndex(const QString& project_root) {
+  pb::Message message;
+  pb::RebuildSymbolIndexRequest* req = message.mutable_rebuild_symbol_index_request();
+
+  req->set_project_root(project_root);
+
+  return SendMessageWithReply(&message);
+}
+
+WorkerClient::ReplyType* WorkerClient::UpdateSymbolIndex(const QString& file_path) {
+  pb::Message message;
+  pb::UpdateSymbolIndexRequest* req = message.mutable_update_symbol_index_request();
+
+  req->set_file_path(file_path);
+
+  return SendMessageWithReply(&message);
+}
+
+WorkerClient::ReplyType* WorkerClient::Search(const QString& query,
+                                              const QString& file_path,
+                                              pb::SymbolType type) {
+  pb::Message message;
+  pb::SearchRequest* req = message.mutable_search_request();
+
+  req->set_query(query);
+
+  if (!file_path.isEmpty()) {
+    req->set_file_path(file_path);
+  }
+
+  if (type != pb::ALL) {
+    req->set_symbol_type(type);
+  }
+
+  return SendMessageWithReply(&message);
+}

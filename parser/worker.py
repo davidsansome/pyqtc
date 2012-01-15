@@ -15,12 +15,23 @@ import sys
 
 import messagehandler
 import rpc_pb2
+import symbolindex
 
 
 class ProjectNotFoundError(Exception):
   """
   An action was requested on a file that was not found in a project.
   """
+
+
+class Project(object):
+  """
+  Helper object that contains a rope project and an associated symbol index.
+  """
+
+  def __init__(self, rope_project):
+    self.rope_project = rope_project
+    self.symbol_index = symbolindex.SymbolIndex(rope_project)
 
 
 class Handler(messagehandler.MessageHandler):
@@ -60,7 +71,7 @@ class Handler(messagehandler.MessageHandler):
     root = os.path.normpath(request.project_root)
     project = rope.base.project.Project(root)
 
-    self.projects[root] = project
+    self.projects[root] = Project(project)
   
   def DestroyProjectRequest(self, request, _response):
     """
@@ -70,7 +81,7 @@ class Handler(messagehandler.MessageHandler):
     root = os.path.normpath(request.project_root)
     project = self.projects[root]
 
-    project.close()
+    project.rope_project.close()
     del self.projects[root]
 
   def _Context(self, context):
@@ -78,7 +89,7 @@ class Handler(messagehandler.MessageHandler):
     Returns a (project, resource, source, offset) tuple for the context.
     """
 
-    project       = self._ProjectForFile(context.file_path)
+    project       = self._ProjectForFile(context.file_path).rope_project
     relative_path = os.path.relpath(context.file_path, project.address)
     resource      = project.get_resource(relative_path)
 
@@ -184,6 +195,59 @@ class Handler(messagehandler.MessageHandler):
     
     if offset is not None:
       response.line = offset
+  
+  def RebuildSymbolTableRequest(self, request, _response):
+    """
+    Parses all the files in the project and rebuilds the symbol index.
+    """
+
+    project = self.projects[request.project_root]
+    project.symbol_index.Rebuild()
+  
+  def UpdateSymbolTableRequest(self, request, _response):
+    """
+    Parses just one file in the project and updates the symbol index.
+    """
+
+    project = self._ProjectForFile(request.file_path)
+
+    # Make the file_path relative to the project
+    relative_path = os.path.relpath(
+        request.file_path, project.rope_project.address)
+    
+    project.symbol_index.UpdateFile(relative_path)
+  
+  def SearchRequest(self, request, response):
+    """
+    Searches the symbol index.
+    """
+
+    project = self._ProjectForFile(request.file_path)
+    project_dir = project.rope_project.address
+
+    file_path = None
+    symbol_type = None
+
+    if request.HasField("file_path"):
+      # Make the file_path relative to the project
+      file_path = os.path.relpath(
+          request.file_path, project_dir)
+    
+    if request.HasField("symbol_type") and request.symbol_type != rpc_pb2.ALL:
+      symbol_type = request.symbol_type
+    
+    # Do the query
+    results = project.symbol_index.Search(request.query,
+        file_path=file_path, symbol_type=symbol_type)
+    
+    # Create the response
+    for file_path, line_number, symbol_name, symbol_type in results:
+      result_pb = response.result.add()
+
+      result_pb.file_path   = os.path.join(project_dir, file_path)
+      result_pb.line_number = line_number
+      result_pb.symbol_name = symbol_name
+      result_pb.symbol_type = symbol_type
 
 
 def Main(args):
