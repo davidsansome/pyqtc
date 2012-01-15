@@ -36,7 +36,9 @@ class MessageHandler(object):
 
   handlers = None
 
-  UNDER_LETTER = re.compile(r'_([a-z])')
+  UNDER_LETTER    = re.compile(r'_([a-z])')
+  REQUEST_SUFFIX  = "_request"
+  RESPONSE_SUFFIX = "_response"
 
   def __init__(self, message_class):
     self.message_class = message_class
@@ -71,26 +73,38 @@ class MessageHandler(object):
     handle.write(struct.pack(">I", len(data)) + data)
     handle.flush()
 
-  def FunctionForRequest(self, request):
+  def FunctionForRequest(self, request, response):
     """
-    Returns a callable to handle this request.  Raises UnknownRequestType if
+    Finds a callable to handle this request.  Raises UnknownRequestType if
     no handler was found, or no x_request field was found in the request
     protobuf.
+
+    Returns a (function, request_pb, response_pb) tuple, where request_pb and
+    response_pb are the correct nested messages inside the request and response
+    parent messages.
     """
 
     for descriptor, _value in request.ListFields():
       name = descriptor.name
-      if not name.endswith("_request"):
+      if not name.endswith(self.REQUEST_SUFFIX):
         continue
       
       # Convert some_thing_request to SomeThingRequest
-      name = name[0].upper() + name[1:]
-      name = self.UNDER_LETTER.sub(lambda m: m.group(1).upper(), name)
+      func_name = name[0].upper() + name[1:]
+      func_name = self.UNDER_LETTER.sub(lambda m: m.group(1).upper(), func_name)
       
       try:
-        return getattr(self, name)
+        function = getattr(self, func_name)
       except AttributeError:
         raise UnknownRequestType
+
+      response_name = name[:-len(self.REQUEST_SUFFIX)] + self.RESPONSE_SUFFIX
+
+      # Get the nested messages
+      request_pb  = getattr(request, name)
+      response_pb = getattr(response, response_name)
+
+      return (function, request_pb, response_pb)
     
     raise UnknownRequestType
 
@@ -121,7 +135,9 @@ class MessageHandler(object):
 
       try:
         # Find a function to handle the request and call it
-        self.FunctionForRequest(request)(request, response)
+        function, request_pb, response_pb = \
+            self.FunctionForRequest(request, response)
+        function(request_pb, response_pb)
       except Exception, ex:
         logging.exception("Error handling request %s", request)
         response.error_response.message = \

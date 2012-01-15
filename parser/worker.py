@@ -57,7 +57,7 @@ class Handler(messagehandler.MessageHandler):
     Creates a new rope project and stores it away for later.
     """
 
-    root = os.path.normpath(request.create_project_request.project_root)
+    root = os.path.normpath(request.project_root)
     project = rope.base.project.Project(root)
 
     self.projects[root] = project
@@ -67,7 +67,7 @@ class Handler(messagehandler.MessageHandler):
     Cleans up a rope project when it is closed by the user in Qt Creator.
     """
 
-    root = os.path.normpath(request.create_project_request.project_root)
+    root = os.path.normpath(request.project_root)
     project = self.projects[root]
 
     project.close()
@@ -110,8 +110,7 @@ class Handler(messagehandler.MessageHandler):
     """
 
     # Get information out of the request
-    project, resource, source, offset = \
-        self._Context(request.completion_request.context)
+    project, resource, source, offset = self._Context(request.context)
 
     # If the cursor is immediately after a comma or open paren, we should look
     # for a calltip first.
@@ -128,8 +127,8 @@ class Handler(messagehandler.MessageHandler):
                                        remove_self=True)
       
       if calltip is not None:
-        response.completion_response.insertion_position = paren_start + 1
-        response.completion_response.calltip = calltip
+        response.insertion_position = paren_start + 1
+        response.calltip = calltip
         return
     
     # Do normal completion if a calltip couldn't be found
@@ -140,11 +139,11 @@ class Handler(messagehandler.MessageHandler):
 
     # Get the position that this completion will start from.
     starting_offset = codeassist.starting_offset(source, offset)
-    response.completion_response.insertion_position = starting_offset
+    response.insertion_position = starting_offset
     
     # Construct the response protobuf
     for proposal in proposals:
-      proposal_pb = response.completion_response.proposal.add()
+      proposal_pb = response.proposal.add()
       proposal_pb.name = proposal.name
 
       docstring = proposal.get_doc()
@@ -163,30 +162,28 @@ class Handler(messagehandler.MessageHandler):
     Finds and returns a tooltip for the given location in the given source file.
     """
 
-    project, resource, source, offset = \
-        self._Context(request.tooltip_request.context)
+    project, resource, source, offset = self._Context(request.context)
     docstring = codeassist.get_doc(project, source, offset,
         maxfixes=self.MAXFIXES, resource=resource)
 
     if docstring is not None:
-      response.tooltip_response.rich_text = docstring
+      response.rich_text = docstring
   
   def DefinitionLocationRequest(self, request, response):
     """
     Finds the definition location of the current symbol.
     """
 
-    project, resource, source, offset = \
-        self._Context(request.definition_location_request.context)
+    project, resource, source, offset = self._Context(request.context)
     resource, offset = codeassist.get_definition_location(
         project, source, offset,
         maxfixes=self.MAXFIXES, resource=resource)
 
     if resource is not None:
-      response.definition_location_response.file_path = resource.real_path
+      response.file_path = resource.real_path
     
     if offset is not None:
-      response.definition_location_response.line = offset
+      response.line = offset
 
 
 def Main(args):
