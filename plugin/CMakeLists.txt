@@ -56,6 +56,7 @@ set(HEADERS
   plugin.h
   projects.h
   pythoneditor.h
+  pythonfilter.h
   workerpool.h
 )
 

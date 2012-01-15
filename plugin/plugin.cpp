@@ -66,7 +66,9 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
   addAutoReleasedObject(new CompletionAssistProvider(worker_pool_, icons_));
   addAutoReleasedObject(new HoverHandler(worker_pool_));
   addAutoReleasedObject(new PythonEditorFactory);
-  addAutoReleasedObject(new PythonFilter(worker_pool_, icons_));
+  addAutoReleasedObject(new PythonClassFilter(worker_pool_, icons_));
+  addAutoReleasedObject(new PythonFunctionFilter(worker_pool_, icons_));
+  addAutoReleasedObject(new PythonCurrentDocumentFilter(worker_pool_, icons_));
 
   Core::ActionManager* am = core->actionManager();
   Core::Context context(constants::kEditorId);

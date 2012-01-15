@@ -23,17 +23,20 @@
 #include "workerclient.h"
 #include "workerpool.h"
 
+namespace Core {
+class IEditor;
+}
+
+
 namespace pyqtc {
 
 class PythonIcons;
 
-class PythonFilter : public Locator::ILocatorFilter {
+class PythonFilterBase : public Locator::ILocatorFilter {
 public:
-  PythonFilter(WorkerPool<WorkerClient>* worker_pool,
-               const PythonIcons* icons);
+  PythonFilterBase(WorkerPool<WorkerClient>* worker_pool,
+                   const PythonIcons* icons);
 
-  QString displayName() const { return tr("Python symbols"); }
-  QString id() const { return "Python symbols"; }
   Priority priority() const { return Medium; }
 
   QList<Locator::FilterEntry> matchesFor(
@@ -41,23 +44,66 @@ public:
   void accept(Locator::FilterEntry selection) const;
   void refresh(QFutureInterface<void>& future);
 
+
   struct EntryInternalData {
     EntryInternalData(const QString& file_path = QString(), int line_number = 0)
-      : file_path_(file_path),
-        line_number_(line_number)
-    {}
+      : file_path_(file_path), line_number_(line_number) {}
 
     QString file_path_;
     int line_number_;
   };
 
+protected:
+  void set_symbol_type(pb::SymbolType type) { symbol_type_ = type; }
+  void set_file_path(const QString& file_path) { file_path_ = file_path; }
+
 private:
   WorkerPool<WorkerClient>* worker_pool_;
   const PythonIcons* icons_;
+
+  pb::SymbolType symbol_type_;
+  QString file_path_;
 };
+
+
+class PythonClassFilter : public PythonFilterBase {
+public:
+  PythonClassFilter(WorkerPool<WorkerClient>* worker_pool,
+                    const PythonIcons* icons);
+
+  QString displayName() const { return tr("Classes (Python)"); }
+  QString id() const { return "Classes (Python)"; }
+};
+
+
+class PythonFunctionFilter : public PythonFilterBase {
+public:
+  PythonFunctionFilter(WorkerPool<WorkerClient>* worker_pool,
+                       const PythonIcons* icons);
+
+  QString displayName() const { return tr("Methods and functions (Python)"); }
+  QString id() const { return "Methods and functions (Python)"; }
+};
+
+
+class PythonCurrentDocumentFilter : public PythonFilterBase {
+  Q_OBJECT
+
+public:
+  PythonCurrentDocumentFilter(WorkerPool<WorkerClient>* worker_pool,
+                              const PythonIcons* icons);
+
+  QString displayName() const { return tr("Methods in Current Document (Python)"); }
+  QString id() const { return "Methods in Current Document (Python)"; }
+
+private slots:
+  void CurrentEditorChanged(Core::IEditor* editor);
+};
+
+
 
 } // namespace pyqtc
 
-Q_DECLARE_METATYPE(pyqtc::PythonFilter::EntryInternalData)
+Q_DECLARE_METATYPE(pyqtc::PythonFilterBase::EntryInternalData)
 
 #endif // PYQTC_PYTHONFILTER_H

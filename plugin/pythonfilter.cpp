@@ -18,23 +18,26 @@
 #include "pythonfilter.h"
 #include "pythonicons.h"
 
+#include <coreplugin/editormanager/ieditor.h>
+#include <coreplugin/icore.h>
 #include <texteditor/basetexteditor.h>
 
 using namespace pyqtc;
 
-PythonFilter::PythonFilter(WorkerPool<WorkerClient>* worker_pool,
-                           const PythonIcons* icons)
+PythonFilterBase::PythonFilterBase(WorkerPool<WorkerClient>* worker_pool,
+                                   const PythonIcons* icons)
   : Locator::ILocatorFilter(NULL),
     worker_pool_(worker_pool),
-    icons_(icons)
+    icons_(icons),
+    symbol_type_(pb::ALL),
+    file_path_(QString())
 {
-  setShortcutString("py");
 }
 
-QList<Locator::FilterEntry> PythonFilter::matchesFor(
+QList<Locator::FilterEntry> PythonFilterBase::matchesFor(
     QFutureInterface<Locator::FilterEntry>& future, const QString& entry) {
   QScopedPointer<WorkerClient::ReplyType> reply(
-        worker_pool_->NextHandler()->Search(entry));
+        worker_pool_->NextHandler()->Search(entry, file_path_, symbol_type_));
   reply->WaitForFinished();
 
   QList<Locator::FilterEntry> ret;
@@ -60,14 +63,52 @@ QList<Locator::FilterEntry> PythonFilter::matchesFor(
   return ret;
 }
 
-void PythonFilter::accept(Locator::FilterEntry selection) const {
+void PythonFilterBase::accept(Locator::FilterEntry selection) const {
   const EntryInternalData& data =
-      selection.internalData.value<pyqtc::PythonFilter::EntryInternalData>();
+      selection.internalData.value<pyqtc::PythonFilterBase::EntryInternalData>();
 
   TextEditor::BaseTextEditorWidget::openEditorAt(
         data.file_path_, data.line_number_, 0,
         Core::Id(), Core::EditorManager::ModeSwitch);
 }
 
-void PythonFilter::refresh(QFutureInterface<void>& future) {
+void PythonFilterBase::refresh(QFutureInterface<void>& future) {
+}
+
+
+PythonClassFilter::PythonClassFilter(
+    WorkerPool<WorkerClient>* worker_pool, const PythonIcons* icons)
+  : PythonFilterBase(worker_pool, icons)
+{
+  set_symbol_type(pb::CLASS);
+  setShortcutString("c");
+}
+
+
+PythonFunctionFilter::PythonFunctionFilter(
+    WorkerPool<WorkerClient>* worker_pool, const PythonIcons* icons)
+  : PythonFilterBase(worker_pool, icons)
+{
+  set_symbol_type(pb::FUNCTION);
+  setShortcutString("m");
+}
+
+
+PythonCurrentDocumentFilter::PythonCurrentDocumentFilter(
+    WorkerPool<WorkerClient>* worker_pool, const PythonIcons* icons)
+  : PythonFilterBase(worker_pool, icons)
+{
+  Core::ICore* core = Core::ICore::instance();
+  Core::EditorManager* editor_manager = core->editorManager();
+
+  connect(editor_manager, SIGNAL(currentEditorChanged(Core::IEditor*)),
+          SLOT(CurrentEditorChanged(Core::IEditor*)));
+
+  setShortcutString(".");
+}
+
+void PythonCurrentDocumentFilter::CurrentEditorChanged(Core::IEditor* editor) {
+  if (editor) {
+    set_file_path(editor->file()->fileName());
+  }
 }
