@@ -4,7 +4,7 @@ using namespace pyqtc;
 
 
 WorkerClient::WorkerClient(QIODevice* device, QObject* parent)
-    : AbstractMessageHandler(device, parent)
+    : AbstractMessageHandler<pb::Message>(device, parent)
 {
 }
 
