@@ -34,7 +34,7 @@ class SymbolIndex(object):
       symbol_name TEXT,
       symbol_type INTEGER
     );
-    CREATE VIRTUAL TABLE symbol_index USING fts4();
+    CREATE VIRTUAL TABLE symbol_index USING fts3();
 
     CREATE TABLE schema_version (version INTEGER);
     INSERT INTO schema_version(version) VALUES (0);
