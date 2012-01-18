@@ -1,15 +1,17 @@
 import argparse
 import collections
 import os
+import re
+import subprocess
 import sys
 import xml.etree.cElementTree as ElementTree
 
-VERSION = "2.7.2"
-NAMESPACE = "pyqtc.python.%s" % VERSION
+VERSION     = "2.7.2"
+NAMESPACE   = "pyqtc.python.%s" % VERSION
 FILTER_NAME = "Python %s" % VERSION
-FILTER_ID = "python"
+FILTER_ID   = "python"
 
-EXTENSIONS = {".html", ".css", ".js", ".txt", ".xml", ".jpg"}
+EXTENSIONS  = {".html", ".css", ".js", ".txt", ".xml", ".jpg"}
 
 
 class Symbol(object):
@@ -29,7 +31,8 @@ def LoadSphinxIndex(filename):
         continue
 
       parts = line.strip().split(" ")
-      ret.append(Symbol(full_name=parts[0], type=parts[1], filename=parts[2]))
+      ret.append(Symbol(full_name=parts[0], type=parts[1],
+        filename="%s#%s" % (parts[2], parts[0])))
   
   return ret
 
@@ -51,12 +54,12 @@ class Element(object):
 
 
 def Data(builder, element_name, data=None, args=None):
-    if args is None:
-      args = {}
-    builder.start(element_name, args)
-    if data is not None:
-      builder.data(data)
-    builder.end(element_name)
+  if args is None:
+    args = {}
+  builder.start(element_name, args)
+  if data is not None:
+    builder.data(data)
+  builder.end(element_name)
 
 
 def WriteQhp(symbols, files, qhp_filename):
@@ -121,6 +124,17 @@ def GetFileList(path):
   return ret
 
 
+def AdjustSpinxConf(filename):
+  contents = open(filename).read()
+  contents += '\nhtml_theme="sphinx-theme"' \
+              '\nhtml_theme_path=["%s"]\n' % \
+                  os.path.join(os.path.dirname(__file__))
+
+  contents = re.sub(r'html_use_opensearch .*', '', contents)
+
+  open(filename, 'w').write(contents)
+
+
 def main(args):
   parser = argparse.ArgumentParser(
     description="Builds a Qt Help file from Sphinx documentation")
@@ -134,11 +148,20 @@ def main(args):
   qch = [os.path.splitext(x)[0] + ".qch" for x in qhp]
   qhc = os.path.splitext(args.qhcp)[0] + ".qhc"
 
+  # Edit the conf.py to use our minimal theme
+  conf_py = os.path.join(args.sphinx_dir, "conf.py")
+  AdjustSpinxConf(conf_py)
+
+  # Build the docs
+  subprocess.check_call(["make", "html"], cwd=args.sphinx_dir)
+
+  sphinx_output = os.path.join(args.sphinx_dir, "build/html")
+
   # Read symbols from the objects.inv
-  symbols = LoadSphinxIndex(os.path.join(args.sphinx_dir, "objects.inv"))
+  symbols = LoadSphinxIndex(os.path.join(sphinx_output, "objects.inv"))
 
   # Get the list of files to include
-  files = GetFileList(args.sphinx_dir)
+  files = GetFileList(sphinx_output)
 
   # Create the output files
   for filename in qhp:
