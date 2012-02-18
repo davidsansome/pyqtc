@@ -67,9 +67,15 @@ void PythonFilterBase::accept(Locator::FilterEntry selection) const {
   const EntryInternalData& data =
       selection.internalData.value<pyqtc::PythonFilterBase::EntryInternalData>();
 
+#ifdef QTC_HAS_CORE_ID
+  Core::Id editor_kind;
+#else
+  QString editor_kind;
+#endif
+
   TextEditor::BaseTextEditorWidget::openEditorAt(
         data.file_path_, data.line_number_, 0,
-        Core::Id(), Core::EditorManager::ModeSwitch);
+        editor_kind, Core::EditorManager::ModeSwitch);
 }
 
 void PythonFilterBase::refresh(QFutureInterface<void>& future) {

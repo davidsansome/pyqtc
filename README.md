@@ -13,7 +13,7 @@ You need:
     Some distributions don't ship version 2.4.0 yet.  If yours doesn't you must
     download it from http://code.google.com/p/protobuf/downloads/list and
     compile from source.
-  * Qt Creator 2.4 or greater.
+  * Qt Creator 2.4.1 or greater.
   * The Qt Creator source code.  You don't have to compile Qt Creator yourself,
     but you do need to have the source available.  You can download it from
     http://qt.nokia.com/downloads/downloads#qt-creator

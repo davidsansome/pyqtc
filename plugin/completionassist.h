@@ -8,6 +8,7 @@
 #include <texteditor/codeassist/ifunctionhintproposalmodel.h>
 #include <texteditor/codeassist/igenericproposalmodel.h>
 
+#include "config.h"
 #include "rpc.pb.h"
 #include "workerclient.h"
 #include "workerpool.h"
@@ -25,7 +26,12 @@ public:
   CompletionAssistProvider(WorkerPool<WorkerClient>* worker_pool,
                            const PythonIcons* icons);
 
+#ifdef QTC_HAS_CORE_ID
   bool supportsEditor(const Core::Id& editorId) const;
+#else
+  bool supportsEditor(const QString& editorId) const;
+#endif
+
   int activationCharSequenceLength() const;
   bool isActivationCharSequence(const QString& sequence) const;
   TextEditor::IAssistProcessor* createProcessor() const;

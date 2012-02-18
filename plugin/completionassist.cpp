@@ -27,9 +27,15 @@ CompletionAssistProvider::CompletionAssistProvider(WorkerPool<WorkerClient>* wor
 {
 }
 
-bool CompletionAssistProvider::supportsEditor(const Core::Id &editorId) const {
+#ifdef QTC_HAS_CORE_ID
+bool CompletionAssistProvider::supportsEditor(const Core::Id& editorId) const {
   return editorId == Core::Id(constants::kEditorId);
 }
+#else
+bool CompletionAssistProvider::supportsEditor(const QString& editorId) const {
+  return editorId == constants::kEditorId;
+}
+#endif
 
 int CompletionAssistProvider::activationCharSequenceLength() const {
   return 1;

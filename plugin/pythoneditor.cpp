@@ -34,9 +34,15 @@ PythonEditor::PythonEditor(PythonEditorWidget* editor)
                            TextEditor::Constants::C_TEXTEDITOR));
 }
 
+#ifdef QTC_HAS_CORE_ID
 Core::Id PythonEditor::id() const {
   return constants::kEditorId;
 }
+#else
+QString PythonEditor::id() const {
+  return constants::kEditorId;
+}
+#endif
 
 
 PythonEditorWidget::PythonEditorWidget(QWidget* parent)

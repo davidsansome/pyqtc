@@ -20,6 +20,7 @@
 
 #include <texteditor/plaintexteditor.h>
 
+#include "config.h"
 
 namespace pyqtc {
 
@@ -34,7 +35,12 @@ public:
   bool duplicateSupported() const { return false; }
   Core::IEditor* duplicate(QWidget* parent) { return NULL; }
   bool isTemporary() const { return false; }
+
+#ifdef QTC_HAS_CORE_ID
   Core::Id id() const;
+#else
+  QString id() const;
+#endif
 };
 
 

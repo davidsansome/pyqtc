@@ -11,7 +11,6 @@ include_directories(
 link_directories(
   ${QTC_BINARY}/lib/qtcreator
   ${QTC_BINARY}/lib/qtcreator/plugins/Nokia
-  ${LIBRARY_OUTPUT_PATH}
 )
 
 add_definitions(
@@ -23,6 +22,11 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/config.cpp.in
   ${CMAKE_CURRENT_BINARY_DIR}/config.cpp
   @ONLY
+)
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/config.h
 )
 
 set(SOURCES
@@ -78,14 +82,14 @@ add_library(pyqtc SHARED
 )
 
 target_link_libraries(pyqtc
-  Aggregation
-  Botan
-  CPlusPlus
-  Core
-  ExtensionSystem
-  Locator
-  ProjectExplorer
-  Utils
+  ${QTC_AGGREGATION_LIB}
+  ${QTC_BOTAN_LIB}
+  ${QTC_CPLUSPLUS_LIB}
+  ${QTC_CORE_LIB}
+  ${QTC_EXTENSION_SYSTEM_LIB}
+  ${QTC_LOCATOR_LIB}
+  ${QTC_PROJECT_EXPLORER_LIB}
+  ${QTC_UTILS_LIB}
   ${QT_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   ${PROTOBUF_LIBRARY}
