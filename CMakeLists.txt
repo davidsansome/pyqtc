@@ -23,6 +23,9 @@ include(cmake/Pylint.cmake)
 include(cmake/TestPython.cmake)
 
 set(QTC_SOURCE "/home/david/src/qt-creator" CACHE STRING "Qt Creator source directory")
+set(QTC_BINARY "/home/david/src/qt-creator" CACHE STRING "Qt Creator binary directory")
+
+set(CMAKE_INSTALL_PREFIX ${QTC_BINARY} CACHE PATH "Install dir" FORCE)
 
 set(PYQTC_LIB_DIR   "lib/qtcreator/plugins/davidsansome")
 set(PYQTC_SHARE_DIR "share/qtcreator/pyqtc")

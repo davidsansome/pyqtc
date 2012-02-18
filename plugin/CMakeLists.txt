@@ -9,8 +9,8 @@ include_directories(
 )
 
 link_directories(
-  ${CMAKE_INSTALL_PREFIX}/lib/qtcreator
-  ${CMAKE_INSTALL_PREFIX}/lib/qtcreator/plugins/Nokia
+  ${QTC_BINARY}/lib/qtcreator
+  ${QTC_BINARY}/lib/qtcreator/plugins/Nokia
   ${LIBRARY_OUTPUT_PATH}
 )
 
