@@ -83,7 +83,7 @@ def WriteQhp(symbols, files, qhp_filename):
       with Element(builder, "keywords"):
         for sym in symbols:
           Data(builder, "keyword", args={
-            "name": sym.name,
+            "name": sym.full_name,
             "id": sym.full_name,
             "ref": sym.filename
           })
