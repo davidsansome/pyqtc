@@ -4,7 +4,8 @@ Makefile
 *.pyc
 bin
 *~
-CMakeLists.txt.user
+CMakeLists.txt.user*
 *.sublime-project
 *.sublime-workspace
+*.autosave
 .ropeproject
