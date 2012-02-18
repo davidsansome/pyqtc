@@ -10,13 +10,15 @@ check_python(
          symbolindex.py
 )
 
+set(ZIP_PATH ${CMAKE_CURRENT_BINARY_DIR}/worker.zip)
+
 add_custom_command(
-  OUTPUT ${WORKER_ZIP_PATH}
+  OUTPUT ${ZIP_PATH}
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/rope
     ${CMAKE_CURRENT_BINARY_DIR}/rope
-  COMMAND ${CMAKE_COMMAND} -E remove ${WORKER_ZIP_PATH}
-  COMMAND ${ZIP_EXECUTABLE} --recurse-paths --must-match --quiet ${WORKER_ZIP_PATH}
+  COMMAND ${CMAKE_COMMAND} -E remove ${ZIP_PATH}
+  COMMAND ${ZIP_EXECUTABLE} --recurse-paths --must-match --quiet ${ZIP_PATH}
     __main__.py
     messagehandler.py
     rope/
@@ -27,5 +29,7 @@ add_custom_command(
 )
 
 add_custom_target(parser ALL
-  DEPENDS ${WORKER_ZIP_PATH}
+  DEPENDS ${ZIP_PATH}
 )
+
+install(FILES ${ZIP_PATH} DESTINATION ${PYQTC_SHARE_DIR})

@@ -1,5 +1,3 @@
-find_program(PYLINT_EXECUTABLE pylint)
-
 macro(check_python)
   parse_arguments(CHECK_PYTHON
     "OUTPUT;PYTHONPATH;DEPENDS;SOURCE"

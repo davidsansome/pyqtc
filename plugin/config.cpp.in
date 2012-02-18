@@ -3,7 +3,8 @@
 namespace pyqtc {
 namespace config {
 
-const char* kWorkerZipPath = "@WORKER_ZIP_PATH@";
+const char* kWorkerZipPath     = "@CMAKE_INSTALL_PREFIX@/@PYQTC_SHARE_DIR@/worker.zip";
+const char* kDocumentationPath = "@CMAKE_INSTALL_PREFIX@/@PYQTC_SHARE_DIR@/python-2.7.2.qch";
 
 }
 }

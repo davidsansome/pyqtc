@@ -14,6 +14,7 @@
 #include <coreplugin/actionmanager/command.h>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/coreconstants.h>
+#include <coreplugin/helpmanager.h>
 #include <coreplugin/icore.h>
 #include <coreplugin/icontext.h>
 #include <coreplugin/mimedatabase.h>
@@ -22,6 +23,7 @@
 #include <QMessageBox>
 #include <QMainWindow>
 #include <QMenu>
+#include <QtHelp/QHelpEngineCore>
 
 #include <QtDebug>
 #include <QtPlugin>
@@ -86,6 +88,8 @@ bool Plugin::initialize(const QStringList& arguments, QString* errorString) {
 }
 
 void Plugin::extensionsInitialized() {
+  Core::HelpManager* help_manager = Core::HelpManager::instance();
+  help_manager->registerDocumentation(QStringList() << config::kDocumentationPath);
 }
 
 ExtensionSystem::IPlugin::ShutdownFlag Plugin::aboutToShutdown() {

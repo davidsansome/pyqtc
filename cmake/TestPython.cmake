@@ -1,5 +1,3 @@
-find_program(PYTHON_EXECUTABLE python)
-
 macro(test_python)
   parse_arguments(TEST_PYTHON
     "OUTPUT;TESTS;DEPENDS"

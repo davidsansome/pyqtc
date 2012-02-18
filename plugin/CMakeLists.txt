@@ -1,12 +1,7 @@
-set(QTC_SOURCE "/home/david/src/qt-creator" CACHE STRING "Qt Creator source directory")
-set(QTC_BUILD  "/home/david/src/qt-creator" CACHE STRING "Qt Creator binary directory")
-
-set(LIBRARY_OUTPUT_PATH ${QTC_BUILD}/lib/qtcreator/plugins/davidsansome)
-
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${QTC_BUILD}/src
+  ${QTC_SOURCE}/src
   ${QTC_SOURCE}/src/libs
   ${QTC_SOURCE}/src/libs/3rdparty/cplusplus
   ${QTC_SOURCE}/src/plugins
@@ -14,8 +9,8 @@ include_directories(
 )
 
 link_directories(
-  ${QTC_BUILD}/lib/qtcreator
-  ${QTC_BUILD}/lib/qtcreator/plugins/Nokia
+  ${CMAKE_INSTALL_PREFIX}/lib/qtcreator
+  ${CMAKE_INSTALL_PREFIX}/lib/qtcreator/plugins/Nokia
   ${LIBRARY_OUTPUT_PATH}
 )
 
@@ -96,4 +91,6 @@ target_link_libraries(pyqtc
   ${PROTOBUF_LIBRARY}
 )
 
-configure_file(pyqtc.pluginspec ${LIBRARY_OUTPUT_PATH}/pyqtc.pluginspec COPY_ONLY)
+install(TARGETS pyqtc LIBRARY DESTINATION ${PYQTC_LIB_DIR})
+install(FILES pyqtc.pluginspec DESTINATION ${PYQTC_LIB_DIR})
+install(FILES python-2.7.2.qch python-2.7.2.qhc DESTINATION ${PYQTC_SHARE_DIR})

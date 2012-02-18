@@ -5,6 +5,7 @@ namespace pyqtc {
 namespace config {
 
 extern const char* kWorkerZipPath;
+extern const char* kDocumentationPath;
 
 }
 }
