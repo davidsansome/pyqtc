@@ -27,12 +27,12 @@ These might be in the same place if you've built Qt Creator yourself, otherwise
 they will be different.  Pyqtc will be installed into the binary directory, the
 source directory will be used to find header files.
 
-  mkdir bin
-  cd bin
-  cmake .. -DQTC_SOURCE=/path/to/qtcreator/source \
-           -DQTC_BINARY=/path/to/qtcreator/installation
-  make
-  make install
+    mkdir bin
+    cd bin
+    cmake .. -DQTC_SOURCE=/path/to/qtcreator/source \
+             -DQTC_BINARY=/path/to/qtcreator/installation
+    make
+    make install
 
 Features
 ========
