@@ -49,7 +49,7 @@ Ctrl+Space.
 Function calltips
 -----------------
 
-![Function calltips](https://raw.github.com/davidsansome/pyqtc/master/images/completion.png)
+![Function calltips](https://raw.github.com/davidsansome/pyqtc/master/images/calltip.png)
 
 After an opening bracket, Pyqtc will show a tooltip containing information about
 the arguments in the function you're about to call.
@@ -57,7 +57,7 @@ the arguments in the function you're about to call.
 Hover tooltips
 --------------
 
-![Tooltips](https://raw.github.com/davidsansome/pyqtc/master/images/completion.png)
+![Tooltips](https://raw.github.com/davidsansome/pyqtc/master/images/tooltip.png)
 
 Pyqtc will show docstrings for functions, modules and classes if you hover over
 them using the mouse.
