@@ -62,6 +62,14 @@ Hover tooltips
 Pyqtc will show docstrings for functions, modules and classes if you hover over
 them using the mouse.
 
+Python indentation
+------------------
+
+![Indentation](https://raw.github.com/davidsansome/pyqtc/master/images/indentation.png)
+
+Automatically indents after a colon (:) and unindents after a continue, break,
+pass, return or raise.
+
 Navigation
 ----------
 
